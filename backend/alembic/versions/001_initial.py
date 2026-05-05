@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision: str = "001"
@@ -17,7 +18,16 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+task_priority = postgresql.ENUM(
+    "low", "medium", "high",
+    name="task_priority",
+    create_type=False,
+)
+
+
 def upgrade() -> None:
+    task_priority.create(op.get_bind(), checkfirst=True)
+
     op.create_table(
         "users",
         sa.Column("id", sa.String(), primary_key=True),
@@ -54,9 +64,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_kanban_columns_topic_position", "kanban_columns", ["topic_id", "position"])
 
-    task_priority_enum = sa.Enum("low", "medium", "high", name="task_priority")
-    task_priority_enum.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "tasks",
         sa.Column("id", sa.String(), primary_key=True),
@@ -65,7 +72,7 @@ def upgrade() -> None:
         sa.Column("column_id", sa.String(), sa.ForeignKey("kanban_columns.id", ondelete="CASCADE"), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("priority", task_priority_enum, nullable=False, server_default="medium"),
+        sa.Column("priority", task_priority, nullable=False, server_default="medium"),
         sa.Column("due_date", sa.DateTime(timezone=True), nullable=True),
         sa.Column("position", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
@@ -99,8 +106,6 @@ def downgrade() -> None:
     op.drop_index("ix_tasks_topic_column_position", table_name="tasks")
     op.drop_table("tasks")
 
-    sa.Enum(name="task_priority").drop(op.get_bind(), checkfirst=True)
-
     op.drop_index("ix_kanban_columns_topic_position", table_name="kanban_columns")
     op.drop_table("kanban_columns")
 
@@ -109,3 +114,5 @@ def downgrade() -> None:
 
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
+
+    task_priority.drop(op.get_bind(), checkfirst=True)

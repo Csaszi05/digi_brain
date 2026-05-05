@@ -70,17 +70,117 @@ TOPICS                                  [+]
 
 Header:
 ```
-📄 Microeconomics                                      [Kanban|Pipeline|Tree|List]
+📄 Microeconomics                          [Kanban|List|Pipeline|Tree|Roadmap|Diagram]
    8 tasks · 12.5h tracked · midterm in 9 days         [+ Add task] [⋯]
 ```
 
-Tartalom (4 nézet, ugyanazokon az adatokon):
-- **Kanban** (alapértelmezett) — testre szabható oszlopok, drag & drop kártyák
-- **Pipeline** — lineáris folyamat, függőségekkel (`task_dependencies` tábla)
-- **Tree / Mind-map** — hierarchikus task struktúra, react-flow-val
-- **List** — egyszerű flat lista szűrőkkel
+Tartalom — **6 nézet, ugyanazokon az adatokon:**
 
-Alatta: `Notes for this topic` szekció — 3 oszlopos kártya grid a topichoz tartozó jegyzetekből.
+| Nézet | Mit mutat | Mire jó |
+|---|---|---|
+| **Kanban** (default) | Tasks oszlopokban státusz szerint, testre szabható oszlopok, drag & drop | Napi munkamenet, státusz váltás |
+| **List** | Tabla — szűrhető, sorrendezhető | Tömeges áttekintés, bulk action |
+| **Pipeline** | Tasks lineáris láncban függőségek szerint | Mi blokkol mit (linear flow) |
+| **Tree** | Tasks hierarchikus szétágazás (`parent_task_id` szerint) | Mind-map, részletekre bontás |
+| **Roadmap** | Vízszintes idő tengelyen sávok (Gantt-szerű) | Mikor mi történik, határidők |
+| **Diagram** | Szabad gráf címkézett élekkel, drag-pozicionálható | Architektúra, kapcsolatok hálózata |
+
+Mind az **ugyanazokon a `tasks` rekordokon** dolgozik — csak más vizualizáció és más adatdimenziókat hangsúlyoz.
+
+**Adatigény nézetenként:**
+- Kanban / List → `column_id`, `priority`, `due_date`
+- Pipeline / Diagram → `task_links` (kapcsolatok)
+- Tree → `parent_task_id`
+- Roadmap → `start_date` + `end_date` (+ opcionálisan `due_date` a buffer csíkhoz)
+- Diagram → `position_x`, `position_y` (perzisztens elrendezés)
+
+### Roadmap dátum modell
+
+A Roadmap **három dátum mezőt** kezel a `tasks` táblából:
+
+- **`start_date`** — sáv eleje (mikor kezdődik a munka)
+- **`end_date`** — sáv vége (mikorra tervezed befejezni — puha cél)
+- **`due_date`** — hard határidő (mikorra muszáj kész lenni)
+
+**Vizuális:**
+
+```
+Mon 10  Tue 11  Wed 12  Thu 13  Fri 14  Sat 15  Sun 16  Mon 17  Tue 18  Wed 19  Thu 20  Fri 21  Sat 22  Sun 23  Mon 24
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        ████████████████████████████████████████░░░░░░░░░░░░░░░░░░░░│
+        ↑ start_date                            ↑ end_date         ↑ due_date
+        │←──── tervezett munkasáv ────→│←─── buffer (slack) ──→│
+```
+
+A sűrű sáv (`start_date` → `end_date`) a tervezett munka. A világosabb csík (`end_date` → `due_date`) a buffer/slack — látod meddig csúszhat a tervezett vég anélkül hogy lekésnéd a hard határidőt.
+
+**Színkódolás:**
+- Sáv: a Topic színe (pl. lila Microecon-nál)
+- Buffer csík: ugyanaz a szín, 30% opacity
+- **At risk** (most > `end_date`, de még < `due_date`): sáv vége **sárga**
+- **Overdue** (most > `due_date`): sáv vége **piros**, alatta `Overdue by 2d` címke
+- **Done**: zöld pipa a sáv végén, eltünik a buffer csík
+
+Alatta minden nézetben: `Notes for this topic` szekció — 3 oszlopos kártya grid a topichoz tartozó jegyzetekből.
+
+---
+
+## Task kapcsolatok (Blocking & Links)
+
+A feladatok között kapcsolatok hozhatók létre. Ezek **minden nézetben láthatók**, és **bárhonnan szerkeszthetők** — a Kanban kártyáról ugyanúgy mint a Diagram nézetben.
+
+### Kapcsolat típusok
+
+| Típus | Jelentés | Iránya |
+|---|---|---|
+| `blocks` | A blokkolja B-t — A-nak késznek kell lennie B előtt | A → B (B inverze: "blocked by") |
+| `relates` | Kapcsolódó téma, nem szigorú függőség | szimmetrikus |
+| `duplicates` | A ugyanaz mint B (egyik archiválható) | A → B |
+| `subtask` | (alternatíva: `parent_task_id` mezőn keresztül) | A ⊂ B |
+
+**MVP-ben** csak `blocks` és `relates` van kitéve a UI-ban; a többi típus később jön. A séma viszont mind támogatja.
+
+### Hozzáadás Kanban kártyáról
+
+1. Kattints egy task kártyára → kinyílik a **task panel** (jobb oldalt slide-in vagy modal)
+2. A panelen `Links` szekció — `+ Add link` gomb
+3. Választasz típust (`Blocks` / `Blocked by` / `Relates to`)
+4. Autocomplete keresőben kiválasztod a target taskot (alapból csak az aktuális Topic taskjaiból, opcionálisan globális)
+5. Mentés → létrejön a `task_links` rekord
+
+### Vizuális jelölés a Kanban kártyán
+
+```
+┌────────────────────────────┐
+│ 🔒 Problem set 4            │  ← 🔒 = blokkolva (van befejezetlen blocker)
+│ Supply & demand exercises   │
+│ ─────────────────────────── │
+│ ●high  Today  ⛓2  →3  ☻   │  ← ⛓2 = 2 blocker, →3 = 3 task ezt a tasktól függ
+└────────────────────────────┘
+```
+
+- **🔒 ikon** ha **legalább egy blocker** még nincs `Done` oszlopban → "currently blocked"
+- **⛓ N** = ennyi taszk blokkolja ezt (incoming `blocks` linkek)
+- **→ N** = ennyi taszkot blokkol ez (outgoing `blocks` linkek)
+- A kártya tompítva (`opacity: 0.6`) jelenik meg ha currently blocked
+
+Mouseover a `🔒`-ra → kis tooltip mutatja a blockereket. Kattintás → ugrik az első blokkolóra.
+
+### Megjelenés a többi nézetben
+
+| Nézet | Hogyan mutatja |
+|---|---|
+| **List** | "Blocked by" és "Blocks" oszlopok (klikkre a kapcsolódó task neve) |
+| **Pipeline** | Az incoming `blocks` élek alapján rendezi balról jobbra; nyilak a kártyák között |
+| **Tree** | `parent_task_id` szerinti hierarchia + szaggatott élek a `blocks` linkekhez |
+| **Roadmap** | Nyilak a sávok között a `blocks` szerint |
+| **Diagram** | Mindegy típus címkézett élként megjelenik (`blocks`, `relates`, stb.) |
+
+### Validáció
+
+- **Cycle detection**: a `blocks` éleken körök tiltottak. Új `blocks` link hozzáadása előtt a backend ellenőrzi (DFS), hogy nem keletkezne kör. Ha igen, hibával elutasítja.
+- **Self-link tiltott**: task nem kapcsolódhat saját magához.
+- **Dupla tiltott**: ugyanaz a `(source_id, target_id, type)` triplet csak egyszer szerepelhet (UNIQUE constraint).
 
 ---
 

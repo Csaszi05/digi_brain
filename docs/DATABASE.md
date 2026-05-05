@@ -18,8 +18,8 @@
 | `users` | Felhasználói fiókok | 1 |
 | `topics` | Hierarchikus témák / blokkok | 1 |
 | `kanban_columns` | Testreszabható kanban oszlopok témánként | 1 |
-| `tasks` | Feladatok | 1 |
-| `task_dependencies` | Feladatok közötti függőségek (pipeline view) | 3 |
+| `tasks` | Feladatok (Kanban + Tree + Roadmap + Diagram nézet adatai) | 1 |
+| `task_links` | Feladatok közötti címkézett kapcsolatok (blocks/relates/duplicates) | 1 |
 | `notes` | Markdown jegyzetek | 1 |
 | `time_entries` | Időkövetési bejegyzések | 2 |
 | `categories` | Pénzügyi kategóriák (testreszabható) | 2 |
@@ -98,7 +98,7 @@ Testreszabható kanban oszlopok **témánként**. Bármennyi oszlop hozható lé
 
 ### `tasks`
 
-Feladatok. Egy téma alá tartoznak, és pontosan egy kanban oszlopban vannak.
+Feladatok. Egy téma alá tartoznak, és pontosan egy kanban oszlopban vannak. A tasks tábla több nézet adatait is hordozza (Kanban, Roadmap, Tree, Diagram).
 
 | Mező | Típus | Constraints | Megjegyzés |
 |---|---|---|---|
@@ -106,12 +106,17 @@ Feladatok. Egy téma alá tartoznak, és pontosan egy kanban oszlopban vannak.
 | `topic_id` | UUID (string) | FK topics(id), NOT NULL | Melyik témához |
 | `user_id` | UUID (string) | FK users(id), NOT NULL | Létrehozó / felelős |
 | `column_id` | UUID (string) | FK kanban_columns(id), NOT NULL | Melyik oszlopban van |
+| `parent_task_id` | UUID (string) | FK tasks(id), NULLABLE | Tree nézethez — szülő task |
 | `title` | VARCHAR(500) | NOT NULL | |
 | `description` | TEXT | NULLABLE | Hosszabb leírás, markdown |
 | `priority` | ENUM('low','medium','high') | DEFAULT 'medium' | |
-| `due_date` | TIMESTAMPTZ | NULLABLE | Határidő |
-| `position` | INTEGER | DEFAULT 0 | Sorrend az oszlopon belül |
-| `completed_at` | TIMESTAMPTZ | NULLABLE | Mikor került „Kész" oszlopba |
+| `start_date` | TIMESTAMPTZ | NULLABLE | Mikor kezdődik a munka (Roadmap sáv eleje) |
+| `end_date` | TIMESTAMPTZ | NULLABLE | Tervezett befejezés (puha cél, Roadmap sáv vége) |
+| `due_date` | TIMESTAMPTZ | NULLABLE | Hard határidő (mikorra muszáj kész lenni) |
+| `position` | INTEGER | DEFAULT 0 | Kanban oszlopon belüli sorrend |
+| `position_x` | INTEGER | NULLABLE | Diagram nézethez — szabad pozíció |
+| `position_y` | INTEGER | NULLABLE | Diagram nézethez — szabad pozíció |
+| `completed_at` | TIMESTAMPTZ | NULLABLE | Mikor került „Kész" oszlopba (tényleges befejezés) |
 | `created_at` | TIMESTAMPTZ | DEFAULT now() | |
 | `updated_at` | TIMESTAMPTZ | DEFAULT now() | |
 
@@ -119,23 +124,87 @@ Feladatok. Egy téma alá tartoznak, és pontosan egy kanban oszlopban vannak.
 - Helyettesíti a régi „status" enum-ot (todo/in_progress/done).
 - Mivel az oszlopok testreszabhatók, a státusz dinamikus.
 
-**Index:** `(topic_id, column_id, position)` — a kanban tábla rendezéséhez.
+**Megjegyzés a nézet-specifikus mezőkről:**
+- `parent_task_id`: csak a Tree / Mind-map nézet használja. NULL = gyökér task. Self-FK, cascade delete-tel.
+- `position_x`, `position_y`: a Diagram nézet szabad elrendezéséhez. Felhasználó által drag-elt pozíciók (jelenleg egy elrendezés per task; később ha kell több layout per user, külön táblába költözik).
+
+**Három dátum mező — szemantikájuk:**
+
+| Mező | Jelentés | Mikor kötelező |
+|---|---|---|
+| `start_date` | Mikor **kezdődik** a munka. Roadmap sáv eleje. | Soha (opc.) |
+| `end_date` | Mikorra **tervezed** befejezni. Puha cél. Roadmap sáv vége. | Soha (opc.) |
+| `due_date` | Hard **határidő** — mikorra **muszáj** kész lenni (pl. külső deadline). | Soha (opc.) |
+| `completed_at` | Mikor lett **ténylegesen** kész (auto, mikor `Done` oszlopba kerül). | Auto |
+
+**Tipikus kombinációk:**
+- Egyszerű feladat (csak határidő): csak `due_date` (vagy csak `end_date`) — Roadmap-ben mérföldkőként
+- Tervezett munka: `start_date` + `end_date` — Roadmap-ben sávként
+- Tervezett munka pufferral: `start_date` + `end_date` + `due_date` — sáv + világosabb buffer csík `end_date` → `due_date`-ig
+- Csak Kanban-ban kezelt: egyik dátum sem — sosem jelenik meg Roadmap-ben
+
+**Validáció (alkalmazás szinten):**
+- Ha `start_date` és `end_date` is van: `end_date >= start_date`
+- Ha `end_date` és `due_date` is van: `due_date >= end_date` (a hard határidő nem lehet a tervezett befejezés előtt)
+
+**Származtatott állapotok (nem tárolva — runtime számolva):**
+- **Slack** = `due_date - end_date` (mennyi puffer van)
+- **At risk** = `now() > end_date AND completed_at IS NULL AND now() < due_date` (csúszás, de még belefér)
+- **Overdue** = `now() > due_date AND completed_at IS NULL` (lekésve)
+
+**Indexek:**
+- `(topic_id, column_id, position)` — Kanban tábla rendezéséhez
+- `(topic_id, parent_task_id)` — Tree nézet rekurzív lekérdezéséhez
+- `(topic_id, start_date)` — Roadmap szűréshez
+- `(user_id, due_date)` — "due soon" / overdue listákhoz
+- `(user_id)` — minden felhasználói lekérdezéshez
 
 ---
 
-### `task_dependencies` *(Fázis 3)*
+### `task_links`
 
-Feladatok közötti függőségek. A pipeline / folyamat nézet ezt használja.
+Feladatok közötti **címkézett kapcsolatok**. Minden nézetben láthatók, a Kanban kártyáról is szerkeszthetők. (Ez a tábla váltja le a korábbi `task_dependencies` tervet — általánosabb, mert több típust is tud.)
 
 | Mező | Típus | Constraints | Megjegyzés |
 |---|---|---|---|
 | `id` | UUID (string) | PK | |
-| `task_id` | UUID (string) | FK tasks(id), NOT NULL | A feladat |
-| `depends_on_task_id` | UUID (string) | FK tasks(id), NOT NULL | Amitől függ |
+| `source_id` | UUID (string) | FK tasks(id), NOT NULL | A kapcsolat kiindulása |
+| `target_id` | UUID (string) | FK tasks(id), NOT NULL | A kapcsolat célja |
+| `link_type` | ENUM('blocks','relates','duplicates') | NOT NULL | Kapcsolat típusa |
+| `created_at` | TIMESTAMPTZ | DEFAULT now() | |
 
-**Constraint:** `UNIQUE(task_id, depends_on_task_id)` — egy függőséget nem rögzítünk kétszer.
+**Szemantika típusonként:**
+- `blocks`: `source` blokkolja `target`-et — `source`-nak késznek kell lennie `target` előtt. (Inverze: `target` "blocked by" `source`.)
+- `relates`: lazább kapcsolat, nem szigorú függőség. Szimmetrikus megjelenítés.
+- `duplicates`: `source` ugyanaz mint `target` (egyik archiválható).
 
-**Index:** Mindkét FK-on.
+**Constraints:**
+- `UNIQUE(source_id, target_id, link_type)` — egy típuson belül egy él csak egyszer
+- `CHECK (source_id <> target_id)` — task nem linkelhető saját magához
+- **Cycle prevention** a `blocks` típusra: alkalmazás szinten, DFS-sel ellenőrizve insert előtt (PostgreSQL nem tud rekurzív CHECK constraint-et)
+
+**Indexek:**
+- `(source_id, link_type)` — egy task összes kimenő linkje típus szerint
+- `(target_id, link_type)` — egy task összes bejövő linkje típus szerint
+
+**Tipikus lekérdezés (egy task összes blockerje):**
+```sql
+SELECT t.* FROM tasks t
+JOIN task_links l ON l.source_id = t.id
+WHERE l.target_id = :task_id AND l.link_type = 'blocks';
+```
+
+**"Currently blocked" check (van befejezetlen blocker):**
+```sql
+SELECT EXISTS (
+  SELECT 1 FROM task_links l
+  JOIN tasks src ON src.id = l.source_id
+  JOIN kanban_columns col ON col.id = src.column_id
+  WHERE l.target_id = :task_id
+    AND l.link_type = 'blocks'
+    AND NOT col.is_done_column
+);
+```
 
 ---
 
@@ -328,8 +397,10 @@ Az adatváltozások naplózásához egy `audit_log` tábla hozzáadható (ki, mi
 
 A migrációkat fázisonként készítjük, hogy ne kelljen felesleges táblákat létrehozni:
 
-1. **`001_initial.py`** — `users`, `topics`, `kanban_columns`, `tasks`, `notes` (Fázis 1)
-2. **`002_time_and_finance.py`** — `time_entries`, `categories`, `transactions`, `budgets` (Fázis 2)
-3. **`003_task_dependencies.py`** — `task_dependencies` (Fázis 3)
+1. **`001_initial.py`** — `users`, `topics`, `kanban_columns`, `tasks` (alap mezők), `notes` (Fázis 1 alap)
+2. **`002_task_links_and_views.py`** — `task_links` tábla + `tasks.parent_task_id`, `tasks.start_date`, `tasks.position_x/y` (Fázis 1, többi nézet támogatása)
+3. **`003_time_and_finance.py`** — `time_entries`, `categories`, `transactions`, `budgets` (Fázis 2)
 4. **`004_vault.py`** — `vault_items` + `users.master_key_salt` (Fázis 4)
 5. **`005_sharing.py`** — `topic_shares` (későbbi)
+
+A 002-es migráció kell hogy meglegyen MVP-re, mert a Kanban kártyán már akarunk blockolni — ami `task_links` rekordot hoz létre.

@@ -65,6 +65,56 @@ Ez a fájl azokat a fontos tervezési döntéseket gyűjti össze, amiket menet 
 
 ---
 
+## 2026-05-05 — Hat task nézet (6 view modes), blocking már az MVP-ben
+
+**Döntés:** A Topic Detail oldal **6 nézetet** kínál ugyanazon `tasks` adatokon: `Kanban`, `List`, `Pipeline`, `Tree`, `Roadmap`, `Diagram`. A task-ok közötti kapcsolatok (blocks / relates / duplicates) **a Kanban kártyáról is szerkeszthetők**, és minden nézetben láthatók.
+
+**Indoklás:**
+- A felhasználó kérte: "kanban-ban is tudjak már blockolni és lássam a többi nézetben"
+- Egy `task_links` tábla minden kapcsolattípust kezel — nem kell külön táblát csinálni minden új típushoz
+- A Roadmap (Gantt-szerű timeline) és a szabad Diagram nézet erőteljes vizualizációs többletet ad anélkül hogy új adatmodellt igényelnének — csak `tasks`-on új mezők (`start_date`, `position_x/y`, `parent_task_id`)
+
+**Hatás:**
+- A `task_dependencies` tábla **átnevezve és általánosítva** `task_links`-re, `link_type` enum-mal
+- A `task_links` és a kapcsolódó `tasks` mezők **felkerültek Fázis 1-be** (eredetileg Fázis 3 volt) — mert a Kanban-ban már akarunk blockolni
+- Külön migráció (`002_task_links_and_views.py`) — az alap `001_initial`-t nem terheli túl
+- Cycle prevention `blocks` típuson alkalmazás szinten (PostgreSQL nem tud rekurzív CHECK-et)
+- Részletes specifikáció: [TOPICS.md](TOPICS.md) — Task kapcsolatok szekció
+
+**Alternatívák elvetve:**
+- Csak `task_dependencies` (egy típus, blocks): kevésbé rugalmas, később breaking change kellene a `relates` / `duplicates` hozzáadásához
+- Külön tábla minden link típusnak: redundáns séma, körülményes lekérdezés
+- Blocking csak Pipeline / Diagram nézetben szerkeszthető: nem felel meg a felhasználó kérésének
+
+---
+
+## 2026-05-05 — Két dátum a feladatokon: `end_date` + `due_date`
+
+**Döntés:** A `tasks` tábla **három** időpont mezőt tárol — `start_date`, `end_date`, `due_date` — eltérő szemantikával:
+- `start_date`: mikor kezdődik a munka (Roadmap sáv eleje)
+- `end_date`: mikorra **tervezed** befejezni (puha cél, Roadmap sáv vége)
+- `due_date`: hard **határidő**, mikorra **muszáj** kész lenni
+
+**Indoklás:**
+- Egyetemi környezetben (és sok projekt-helyzetben) a tervezett befejezés és a hard határidő különbözik — a vizsgára 3 nappal előbb akarsz kész lenni, mint a tényleges deadline
+- A különbség (`due_date - end_date`) **buffer / slack**, amit a Roadmap-ben világosabb csíkként jelenítünk meg — vizuális visszajelzés a mozgásterről
+- Származtatott állapotok lesznek belőle: **at risk** (csúszás `end_date`-en, de még belefér), **overdue** (`due_date` lekésve)
+- Mind a három mező opcionális — egyszerű feladatnál egyik sem kell, csak Kanban-ban kezeled
+
+**Hatás:**
+- `tasks.end_date` új mező a sémában (`002_task_links_and_views.py` migráció már fogja tartalmazni)
+- `due_date` továbbra is a hard határidő — nem nevezzük át
+- Roadmap nézet vizualizálja mindhárom mezőt (sáv + buffer csík)
+- Validáció alkalmazás szinten: `end_date >= start_date`, `due_date >= end_date`
+- Részletes vizualizáció: [TOPICS.md](TOPICS.md) — Roadmap dátum modell
+
+**Alternatívák elvetve:**
+- **Csak `due_date`**: nem ad mozgásteret a tervezésnek, nincs buffer fogalom
+- **`due_date` átnevezése `end_date`-re**: akkor elveszne a "hard deadline" jelentés, és minden külső deadline-nál ad-hoc kéne kezelni
+- **Teljes Gantt modell több mezővel** (estimated_duration, baseline_start, stb.): overkill, a 3 dátum 95%-os lefedettséget ad
+
+---
+
 ## 2026-05-05 — Markdown szinkron későbbre halasztva
 
 **Döntés:** Az MVP-ben a jegyzetek csak az adatbázisban tárolódnak. A `notes` tábla `file_path` mezője NULLABLE — később, amikor implementáljuk a fájlrendszer szinkronizálást, ez megkapja az értéket.
