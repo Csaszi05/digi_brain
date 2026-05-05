@@ -7,6 +7,7 @@ A DigiBrain egy önálló, self-hosted webalkalmazás, amely egyetlen helyen egy
 ## További Dokumentumok
 
 - **[docs/DATABASE.md](docs/DATABASE.md)** — Részletes adatbázis séma, táblák, kapcsolatok
+- **[docs/TOPICS.md](docs/TOPICS.md)** — Topicok koncepciója: mappa + konténer szerep, mit tartalmazhatnak, hogyan néznek ki, lekérdezések
 - **[docs/DECISIONS.md](docs/DECISIONS.md)** — Tervezési döntések naplója (mit, miért választottunk)
 
 ---
