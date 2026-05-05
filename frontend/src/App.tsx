@@ -1,15 +1,34 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate } from "react-router-dom"
+import { RootLayout } from "@/components/layout/RootLayout"
+import Dashboard from "@/pages/Dashboard"
+
+function Placeholder({ title }: { title: string }) {
+  return (
+    <div className="placeholder text-center" style={{
+      padding: 48,
+      border: "1px dashed var(--border)",
+      borderRadius: 12,
+      color: "var(--fg3)",
+      fontSize: 13,
+    }}>
+      {title} — coming soon
+    </div>
+  )
+}
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<div>Login – hamarosan</div>} />
-      <Route path="/dashboard" element={<div>Dashboard – hamarosan</div>} />
-      <Route path="/topics/:id" element={<div>Téma nézet – hamarosan</div>} />
-      <Route path="/time" element={<div>Időkövetés – hamarosan</div>} />
-      <Route path="/finance" element={<div>Pénzügyek – hamarosan</div>} />
-      <Route path="/vault" element={<div>Vault – hamarosan</div>} />
+      <Route element={<RootLayout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/topics/:id" element={<Placeholder title="Topic detail" />} />
+        <Route path="/time" element={<Placeholder title="Time tracking" />} />
+        <Route path="/finance" element={<Placeholder title="Finances" />} />
+        <Route path="/notes" element={<Placeholder title="Notes" />} />
+        <Route path="/vault" element={<Placeholder title="Vault" />} />
+      </Route>
+      <Route path="/login" element={<Placeholder title="Login" />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

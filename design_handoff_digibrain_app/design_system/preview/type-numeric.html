@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Type · Numerics & Mono</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .group { display: flex; flex-direction: column; gap: 6px; }
+  .stat { font: var(--type-stat); letter-spacing: var(--tracking-display); font-variant-numeric: tabular-nums; }
+  .lbl { font: var(--type-mini); text-transform: uppercase; letter-spacing: var(--tracking-mini); color: var(--fg3); }
+  .meta { font: var(--type-mono); font-size: var(--text-12); color: var(--fg3); }
+  .mono-block { font: var(--type-mono); color: var(--fg2); background: var(--bg-elev1); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; }
+</style></head><body>
+  <div class="group">
+    <span class="lbl">Hours this week</span>
+    <span class="stat">12.5h</span>
+    <span class="meta">--type-stat · tabular-nums</span>
+  </div>
+  <div class="group">
+    <span class="lbl">Spent this month</span>
+    <span class="stat">45 230 <span style="font-size: var(--text-18); color: var(--fg3)">HUF</span></span>
+    <span class="meta">tabular-nums + ISO chip</span>
+  </div>
+  <div class="group" style="grid-column: 1 / -1">
+    <span class="lbl">Mono</span>
+    <div class="mono-block">const topic = "Microeconomics";  // JetBrains Mono 13/1.5</div>
+  </div>
+</body></html>

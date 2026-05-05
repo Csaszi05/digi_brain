@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Colors · Surfaces</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 20px; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .swatch { padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border); height: 96px; display: flex; flex-direction: column; justify-content: space-between; }
+  .lbl { font: var(--type-mini); color: var(--fg3); text-transform: uppercase; letter-spacing: var(--tracking-mini); }
+  .name { font: 500 var(--text-14)/1 var(--font-sans); color: var(--fg1); }
+  .hex { font: var(--type-mono); color: var(--fg3); font-size: var(--text-12); }
+</style></head><body>
+  <div class="row">
+    <div class="swatch" style="background: var(--bg-app)">
+      <div class="lbl">bg-app</div>
+      <div><div class="name">Canvas</div><div class="hex">zinc-950 · #09090b</div></div>
+    </div>
+    <div class="swatch" style="background: var(--bg-elev1)">
+      <div class="lbl">bg-elev1</div>
+      <div><div class="name">Sidebar / Cards</div><div class="hex">zinc-900 · #18181b</div></div>
+    </div>
+    <div class="swatch" style="background: var(--bg-elev2)">
+      <div class="lbl">bg-elev2</div>
+      <div><div class="name">Hover / Inputs</div><div class="hex">zinc-800 · #27272a</div></div>
+    </div>
+  </div>
+</body></html>

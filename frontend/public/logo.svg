@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="32" viewBox="0 0 160 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#6366f1"></rect>
+  <text x="16" y="22" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="16" fill="#ffffff" letter-spacing="-0.02em">DB</text>
+  <text x="42" y="22" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="16" fill="currentColor" letter-spacing="-0.015em">DigiBrain</text>
+</svg>

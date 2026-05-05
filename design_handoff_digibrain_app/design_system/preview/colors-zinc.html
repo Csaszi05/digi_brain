@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Colors · Zinc Scale</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 20px; }
+  .scale { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
+  .step { height: 80px; border-radius: 6px; border: 1px solid rgb(255 255 255 / 0.06); display: flex; flex-direction: column; justify-content: flex-end; padding: 6px; }
+  .step .n { font: 500 var(--text-12)/1 var(--font-sans); }
+  .step .h { font: var(--type-mono); font-size: 9px; opacity: 0.7; }
+  .light { color: var(--zinc-900); }
+  .dark { color: var(--zinc-50); }
+</style></head><body>
+  <div class="scale">
+    <div class="step light" style="background:var(--zinc-50)"><div class="n">50</div><div class="h">fafafa</div></div>
+    <div class="step light" style="background:var(--zinc-100)"><div class="n">100</div><div class="h">f4f4f5</div></div>
+    <div class="step light" style="background:var(--zinc-200)"><div class="n">200</div><div class="h">e4e4e7</div></div>
+    <div class="step light" style="background:var(--zinc-300)"><div class="n">300</div><div class="h">d4d4d8</div></div>
+    <div class="step light" style="background:var(--zinc-400)"><div class="n">400</div><div class="h">a1a1aa</div></div>
+    <div class="step dark" style="background:var(--zinc-500)"><div class="n">500</div><div class="h">71717a</div></div>
+    <div class="step dark" style="background:var(--zinc-600)"><div class="n">600</div><div class="h">52525b</div></div>
+    <div class="step dark" style="background:var(--zinc-700)"><div class="n">700</div><div class="h">3f3f46</div></div>
+    <div class="step dark" style="background:var(--zinc-800)"><div class="n">800</div><div class="h">27272a</div></div>
+    <div class="step dark" style="background:var(--zinc-900)"><div class="n">900</div><div class="h">18181b</div></div>
+    <div class="step dark" style="background:var(--zinc-950)"><div class="n">950</div><div class="h">09090b</div></div>
+  </div>
+</body></html>

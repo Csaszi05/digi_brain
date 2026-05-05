@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Type · Body & UI</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 24px; }
+  .row { display: grid; grid-template-columns: 80px 1fr 120px; gap: 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border: 0; }
+  .meta { font: var(--type-mono); font-size: var(--text-12); color: var(--fg3); }
+  .mini-up { font: var(--type-mini); text-transform: uppercase; letter-spacing: var(--tracking-mini); color: var(--fg3); }
+</style></head><body>
+  <div class="row"><div class="meta">14 / 500</div><div style="font: var(--type-body-md)">Body medium · 5 tasks due this week</div><div class="meta">--type-body-md</div></div>
+  <div class="row"><div class="meta">14 / 400</div><div style="font: var(--type-body); color: var(--fg2)">Body regular · You haven't started a timer.</div><div class="meta">--type-body</div></div>
+  <div class="row"><div class="meta">13 / 400</div><div style="font: var(--type-small); color: var(--fg2)">Small · Sidebar items, captions, table cells</div><div class="meta">--type-small</div></div>
+  <div class="row"><div class="meta">12 / 500</div><div class="mini-up">Mini-label · hours this week</div><div class="meta">--type-mini</div></div>
+</body></html>
