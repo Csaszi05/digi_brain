@@ -11,9 +11,15 @@ import {
 } from "lucide-react"
 import { useTopicQuery } from "@/api/topics"
 import { useTopicTasksQuery, type Task } from "@/api/tasks"
+import type { Note } from "@/api/notes"
 import { KanbanBoard } from "@/components/topic/KanbanBoard"
 import { TaskPanel } from "@/components/topic/TaskPanel"
 import { TopicHeader } from "@/components/topic/TopicHeader"
+import { TreeView } from "@/components/topic/TreeView"
+import { PipelineView } from "@/components/topic/PipelineView"
+import { RoadmapView } from "@/components/topic/RoadmapView"
+import { NotesSection } from "@/components/notes/NotesSection"
+import { NoteEditor } from "@/components/notes/NoteEditor"
 
 type ViewMode = "kanban" | "list" | "pipeline" | "tree" | "roadmap" | "diagram"
 
@@ -31,6 +37,7 @@ export default function TopicDetail() {
   const [view, setView] = useState<ViewMode>("kanban")
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [addingForColumn, setAddingForColumn] = useState<string | null>(null)
+  const [openNote, setOpenNote] = useState<Note | null>(null)
   const topicQuery = useTopicQuery(id)
   const tasksQuery = useTopicTasksQuery(id)
 
@@ -95,7 +102,28 @@ export default function TopicDetail() {
           onAddingForColumnChange={setAddingForColumn}
         />
       )}
-      {view !== "kanban" && (
+      {view === "tree" && (
+        <TreeView
+          topicId={topic.id}
+          columns={topic.kanban_columns}
+          onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+        />
+      )}
+      {view === "pipeline" && (
+        <PipelineView
+          topicId={topic.id}
+          columns={topic.kanban_columns}
+          onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+        />
+      )}
+      {view === "roadmap" && (
+        <RoadmapView
+          topicId={topic.id}
+          columns={topic.kanban_columns}
+          onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+        />
+      )}
+      {(view === "list" || view === "diagram") && (
         <div
           className="grid place-items-center text-fg3 text-sm"
           style={{
@@ -107,6 +135,8 @@ export default function TopicDetail() {
           {VIEW_TABS.find((t) => t.id === view)?.label} view — coming soon
         </div>
       )}
+
+      <NotesSection topicId={topic.id} onOpenNote={setOpenNote} />
 
       {selectedTaskId && (() => {
         const selected = tasksQuery.data?.find((t) => t.id === selectedTaskId)
@@ -120,6 +150,10 @@ export default function TopicDetail() {
           />
         )
       })()}
+
+      {openNote && (
+        <NoteEditor note={openNote} onClose={() => setOpenNote(null)} />
+      )}
     </div>
   )
 }

@@ -171,19 +171,74 @@ export function TaskPanel({ task, columns, topicId, onClose }: Props) {
             </div>
 
             <div>
-              <div className="tp-field-label">Due date</div>
-              <input
-                type="date"
-                className="tp-field-input"
-                value={isoToDateInput(task.due_date)}
+              <div className="tp-field-label">Parent task</div>
+              <select
+                className="tp-field-select"
+                value={task.parent_task_id ?? ""}
                 onChange={(e) =>
                   update.mutate({
                     id: task.id,
-                    due_date: dateInputToIso(e.target.value),
+                    parent_task_id: e.target.value || null,
+                  })
+                }
+              >
+                <option value="">— None (root) —</option>
+                {(tasksQuery.data ?? [])
+                  .filter((t) => t.id !== task.id)
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="tp-meta-grid">
+            <div>
+              <div className="tp-field-label">Start date</div>
+              <input
+                type="date"
+                className="tp-field-input"
+                value={isoToDateInput(task.start_date)}
+                onChange={(e) =>
+                  update.mutate({
+                    id: task.id,
+                    start_date: dateInputToIso(e.target.value),
                   })
                 }
               />
             </div>
+
+            <div>
+              <div className="tp-field-label">End date (planned)</div>
+              <input
+                type="date"
+                className="tp-field-input"
+                value={isoToDateInput(task.end_date)}
+                onChange={(e) =>
+                  update.mutate({
+                    id: task.id,
+                    end_date: dateInputToIso(e.target.value),
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="tp-field-label">Due date (hard deadline)</div>
+            <input
+              type="date"
+              className="tp-field-input"
+              value={isoToDateInput(task.due_date)}
+              onChange={(e) =>
+                update.mutate({
+                  id: task.id,
+                  due_date: dateInputToIso(e.target.value),
+                })
+              }
+            />
           </div>
 
           <div>

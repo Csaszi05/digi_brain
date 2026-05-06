@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom"
 import { RootLayout } from "@/components/layout/RootLayout"
 import Dashboard from "@/pages/Dashboard"
 import TopicDetail from "@/pages/TopicDetail"
+import NotesPage from "@/pages/NotesPage"
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -25,7 +26,7 @@ export default function App() {
         <Route path="/topics/:id" element={<TopicDetail />} />
         <Route path="/time" element={<Placeholder title="Time tracking" />} />
         <Route path="/finance" element={<Placeholder title="Finances" />} />
-        <Route path="/notes" element={<Placeholder title="Notes" />} />
+        <Route path="/notes" element={<NotesPage />} />
         <Route path="/vault" element={<Placeholder title="Vault" />} />
       </Route>
       <Route path="/login" element={<Placeholder title="Login" />} />
