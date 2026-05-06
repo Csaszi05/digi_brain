@@ -1,4 +1,5 @@
-import { Link, useNavigate, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import { useState } from "react"
 import {
   ChevronRight,
   Search,
@@ -14,7 +15,9 @@ import {
   PanelLeftOpen,
 } from "lucide-react"
 import { useUIStore } from "@/stores/uiStore"
-import { TOPIC_TREE, type TopicNode } from "./topicTree"
+import { useTopicsQuery } from "@/api/topics"
+import { buildTopicTree, type TopicNode } from "./topicTree"
+import { NewTopicForm } from "./NewTopicForm"
 
 type NavItem = {
   id: string
@@ -47,21 +50,26 @@ function TopicRow({
   node,
   depth,
   activeId,
+  newChildOpenForId,
+  setNewChildOpenForId,
 }: {
   node: TopicNode
   depth: number
   activeId: string | null
+  newChildOpenForId: string | null
+  setNewChildOpenForId: (id: string | null) => void
 }) {
   const navigate = useNavigate()
   const isExpanded = useUIStore((s) => s.isTopicExpanded(node.id))
   const toggleTopic = useUIStore((s) => s.toggleTopic)
-  const hasChildren = (node.children?.length ?? 0) > 0
+  const hasChildren = node.children.length > 0
+  const showNewChild = newChildOpenForId === node.id
   const isActive = activeId === node.id
 
   return (
     <div>
       <div
-        className="tt-row"
+        className="tt-row group/topic"
         data-active={isActive ? "true" : "false"}
         style={{ paddingLeft: 8 + depth * 14 }}
         onClick={() => {
@@ -69,21 +77,54 @@ function TopicRow({
           navigate(`/topics/${node.id}`)
         }}
       >
-        <Caret open={isExpanded} leaf={!hasChildren} />
-        <span className="tt-icon">{node.emoji}</span>
+        <Caret open={isExpanded || showNewChild} leaf={!hasChildren} />
+        <span className="tt-icon">{node.icon ?? "📁"}</span>
         <span className="tt-name">{node.name}</span>
-        <span className="tt-count">{node.count}</span>
+        <button
+          type="button"
+          className="add-btn opacity-0 transition-opacity group-hover/topic:opacity-100"
+          aria-label="New sub-topic"
+          onClick={(e) => {
+            e.stopPropagation()
+            if (!isExpanded) toggleTopic(node.id)
+            setNewChildOpenForId(node.id)
+          }}
+          style={{
+            width: 18,
+            height: 18,
+            display: "grid",
+            placeItems: "center",
+            background: "transparent",
+            border: 0,
+            color: "var(--fg3)",
+            borderRadius: 4,
+            cursor: "pointer",
+            marginRight: 2,
+          }}
+        >
+          <Plus size={12} strokeWidth={1.5} />
+        </button>
       </div>
-      {hasChildren && isExpanded && (
+      {(isExpanded || showNewChild) && (hasChildren || showNewChild) && (
         <div>
-          {node.children!.map((c) => (
+          {node.children.map((c) => (
             <TopicRow
               key={c.id}
               node={c}
               depth={depth + 1}
               activeId={activeId}
+              newChildOpenForId={newChildOpenForId}
+              setNewChildOpenForId={setNewChildOpenForId}
             />
           ))}
+          {showNewChild && (
+            <div style={{ paddingLeft: 8 + (depth + 1) * 14 }}>
+              <NewTopicForm
+                parentId={node.id}
+                onClose={() => setNewChildOpenForId(null)}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -106,6 +147,13 @@ export function Sidebar() {
   const openCmdk = useUIStore((s) => s.openCmdk)
   const location = useLocation()
   const activeTopicId = activeTopicIdFromPath(location.pathname)
+
+  const topics = useTopicsQuery()
+  const tree = topics.data ? buildTopicTree(topics.data) : []
+
+  // ─── New topic UI state (local — no need to persist) ───
+  const [newRootOpen, setNewRootOpen] = useState(false)
+  const [newChildOpenForId, setNewChildOpenForId] = useState<string | null>(null)
 
   return (
     <aside className="sb" data-collapsed={collapsed ? "true" : "false"}>
@@ -138,19 +186,46 @@ export function Sidebar() {
       <div className="sb-scroll">
         <div className="sb-section-label">
           <span>Topics</span>
-          <button type="button" className="add-btn" aria-label="New topic">
+          <button
+            type="button"
+            className="add-btn"
+            aria-label="New topic"
+            onClick={() => setNewRootOpen(true)}
+          >
             <Plus size={12} strokeWidth={1.5} />
           </button>
         </div>
+
         <div className="tt-tree">
-          {TOPIC_TREE.map((t) => (
+          {topics.isLoading && (
+            <div className="px-3 py-2 text-xs text-fg3">Loading…</div>
+          )}
+          {topics.isError && (
+            <div className="px-3 py-2 text-xs text-danger">
+              Could not load topics
+            </div>
+          )}
+          {!topics.isLoading && !topics.isError && tree.length === 0 && !newRootOpen && (
+            <div className="px-3 py-2 text-xs text-fg3">
+              No topics yet. Click + to add one.
+            </div>
+          )}
+          {tree.map((t) => (
             <TopicRow
               key={t.id}
               node={t}
               depth={0}
               activeId={activeTopicId}
+              newChildOpenForId={newChildOpenForId}
+              setNewChildOpenForId={setNewChildOpenForId}
             />
           ))}
+          {newRootOpen && (
+            <NewTopicForm
+              parentId={null}
+              onClose={() => setNewRootOpen(false)}
+            />
+          )}
         </div>
 
         <div className="sb-divider" />

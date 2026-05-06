@@ -1,61 +1,35 @@
-export type TopicNode = {
-  id: string
-  emoji: string
-  name: string
-  count: number
-  children?: TopicNode[]
+import type { Topic } from "@/api/topics"
+
+export type TopicNode = Topic & {
+  children: TopicNode[]
 }
 
-export const TOPIC_TREE: TopicNode[] = [
-  {
-    id: "univ",
-    emoji: "📚",
-    name: "University — Business Informatics",
-    count: 47,
-    children: [
-      {
-        id: "sem1",
-        emoji: "📁",
-        name: "Semester 1",
-        count: 18,
-        children: [
-          { id: "micro", emoji: "📄", name: "Microeconomics", count: 8 },
-          { id: "math", emoji: "📄", name: "Mathematics", count: 6 },
-          { id: "prog", emoji: "📄", name: "Programming I", count: 4 },
-        ],
-      },
-      {
-        id: "sem2",
-        emoji: "📁",
-        name: "Semester 2",
-        count: 12,
-        children: [
-          { id: "macro", emoji: "📄", name: "Macroeconomics", count: 5 },
-          { id: "stats", emoji: "📄", name: "Statistics", count: 7 },
-        ],
-      },
-      { id: "thesis", emoji: "📄", name: "Thesis research", count: 3 },
-    ],
-  },
-  {
-    id: "work",
-    emoji: "💼",
-    name: "Work",
-    count: 23,
-    children: [
-      { id: "proj-a", emoji: "📁", name: "Project Atlas", count: 14 },
-      { id: "proj-b", emoji: "📁", name: "Client onboarding", count: 9 },
-    ],
-  },
-  {
-    id: "personal",
-    emoji: "🏠",
-    name: "Personal",
-    count: 15,
-    children: [
-      { id: "health", emoji: "📁", name: "Health", count: 4 },
-      { id: "finance", emoji: "📁", name: "Finance", count: 6 },
-      { id: "travel", emoji: "📁", name: "Travel", count: 5 },
-    ],
-  },
-]
+/**
+ * Builds a nested tree from the flat topic list returned by the API.
+ * Children are sorted by `position`, then by `created_at`.
+ */
+export function buildTopicTree(flat: Topic[]): TopicNode[] {
+  const byId = new Map<string, TopicNode>()
+  for (const t of flat) {
+    byId.set(t.id, { ...t, children: [] })
+  }
+
+  const roots: TopicNode[] = []
+  for (const node of byId.values()) {
+    if (node.parent_id && byId.has(node.parent_id)) {
+      byId.get(node.parent_id)!.children.push(node)
+    } else {
+      roots.push(node)
+    }
+  }
+
+  const sortNodes = (nodes: TopicNode[]) => {
+    nodes.sort((a, b) => {
+      if (a.position !== b.position) return a.position - b.position
+      return a.created_at.localeCompare(b.created_at)
+    })
+    for (const n of nodes) sortNodes(n.children)
+  }
+  sortNodes(roots)
+  return roots
+}

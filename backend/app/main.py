@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from app.api.deps import DEV_USER_ID
+from app.api.v1 import tasks as tasks_router
 from app.api.v1 import topics as topics_router
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
@@ -57,3 +58,4 @@ async def health():
 
 
 app.include_router(topics_router.router, prefix="/api/v1")
+app.include_router(tasks_router.router, prefix="/api/v1")

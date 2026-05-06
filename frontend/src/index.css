@@ -770,4 +770,185 @@
     padding: 1px 4px;
     line-height: 1;
   }
+
+  /* ─── Tabs (segmented control) ──────────────────────────── */
+  .tabs {
+    display: inline-flex;
+    background: var(--bg-elev1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg2);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--dur-fast), color var(--dur-fast);
+  }
+  .tab:hover { color: var(--fg1); }
+  .tab[data-active="true"] {
+    background: var(--bg-elev2);
+    color: var(--fg1);
+  }
+
+  /* ─── Kanban board ──────────────────────────────────────── */
+  .kb-board-wrap {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0 0;
+    min-height: 0;
+  }
+  .kb-board {
+    display: inline-flex;
+    gap: 12px;
+    padding-bottom: 16px;
+    align-items: stretch;
+  }
+  .kb-col {
+    position: relative;
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--bg-elev1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 560px;
+  }
+  .kb-col-stripe { height: 2px; }
+  .kb-col-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev1);
+  }
+  .kb-col-head-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fg1);
+  }
+  .kb-col-count {
+    font-size: 12px;
+    color: var(--fg3);
+    font-variant-numeric: tabular-nums;
+  }
+  .kb-col-body {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .kb-card {
+    position: relative;
+    background: var(--bg-elev2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+  }
+  .kb-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+  .kb-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg1);
+    line-height: 1.4;
+  }
+  .kb-card-desc {
+    font-size: 12px;
+    color: var(--fg3);
+    line-height: 1.4;
+    margin-top: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .kb-card-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .kb-add-task {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    padding: 8px;
+    font-size: 12px;
+    color: var(--fg3);
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+    width: 100%;
+  }
+  .kb-add-task:hover {
+    color: var(--fg1);
+    border-color: var(--border-strong);
+  }
+  .kb-add-col {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--fg3);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color var(--dur-fast), border-color var(--dur-fast);
+    align-self: stretch;
+    max-height: 560px;
+  }
+  .kb-add-col:hover {
+    color: var(--fg1);
+    border-color: var(--border-strong);
+  }
+
+  /* Inline-editable card (when adding a new task) */
+  .kb-card-input {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: var(--fg1);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    outline: none;
+    padding: 0;
+    resize: none;
+    font-family: inherit;
+  }
+  .kb-card-input::placeholder { color: var(--fg3); }
 }
