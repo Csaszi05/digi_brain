@@ -4,6 +4,8 @@ import { StatCard } from "@/components/dashboard/StatCard"
 import { RecentTasks, type RecentTask } from "@/components/dashboard/RecentTasks"
 import { TimeDistribution, type TimeSlice } from "@/components/dashboard/TimeDistribution"
 import { RecentNotes, type RecentNote } from "@/components/dashboard/RecentNotes"
+import { useActiveTimerQuery, useStopTimerMutation } from "@/api/time"
+import { useTopicsQuery } from "@/api/topics"
 
 const RECENT_TASKS: RecentTask[] = [
   { title: "Finish problem set 4 — supply & demand", topic: "Microeconomics", color: "#a78bfa", priority: "high", due: "Today" },
@@ -70,8 +72,13 @@ export default function Dashboard() {
   const userName = "Marcell"
   const tasksThisWeek = 8
 
-  // Demo: timer started ~1h24m ago
-  const fakeStart = new Date(Date.now() - (1 * 3600 + 24 * 60 + 8) * 1000)
+  const activeTimer = useActiveTimerQuery()
+  const stopTimer = useStopTimerMutation()
+  const topicsQuery = useTopicsQuery()
+  const activeEntry = activeTimer.data ?? null
+  const activeTopicName = activeEntry
+    ? topicsQuery.data?.find((t) => t.id === activeEntry.topic_id)?.name ?? "Unknown topic"
+    : null
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
@@ -96,11 +103,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <ActiveTimer
-        topic="Microeconomics"
-        task="Problem set 4"
-        startedAt={fakeStart}
-      />
+      {activeEntry && activeTopicName && (
+        <ActiveTimer
+          topic={activeTopicName}
+          startedAt={new Date(activeEntry.started_at)}
+          onStop={() => stopTimer.mutate()}
+        />
+      )}
 
       <div className="grid grid-cols-4 gap-4">
         <StatCard

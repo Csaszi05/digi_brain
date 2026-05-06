@@ -1,6 +1,7 @@
 import { Bell, CircleHelp, Search } from "lucide-react"
 import { Fragment } from "react"
 import { useUIStore } from "@/stores/uiStore"
+import { TimerWidget } from "@/components/time/TimerWidget"
 
 export type Crumb = {
   label: string
@@ -39,6 +40,7 @@ export function TopBar({ crumbs = [] }: TopBarProps) {
       </button>
 
       <div className="topbar-right">
+        <TimerWidget />
         <button type="button" className="btn btn-ghost btn-icon" aria-label="Notifications">
           <Bell size={16} strokeWidth={1.5} />
         </button>

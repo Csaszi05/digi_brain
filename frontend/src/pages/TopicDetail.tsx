@@ -18,6 +18,8 @@ import { TopicHeader } from "@/components/topic/TopicHeader"
 import { TreeView } from "@/components/topic/TreeView"
 import { PipelineView } from "@/components/topic/PipelineView"
 import { RoadmapView } from "@/components/topic/RoadmapView"
+import { ListView } from "@/components/topic/ListView"
+import { DiagramView } from "@/components/topic/DiagramView"
 import { NotesSection } from "@/components/notes/NotesSection"
 import { NoteEditor } from "@/components/notes/NoteEditor"
 
@@ -123,17 +125,19 @@ export default function TopicDetail() {
           onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
         />
       )}
-      {(view === "list" || view === "diagram") && (
-        <div
-          className="grid place-items-center text-fg3 text-sm"
-          style={{
-            padding: 48,
-            border: "1px dashed var(--border)",
-            borderRadius: 12,
-          }}
-        >
-          {VIEW_TABS.find((t) => t.id === view)?.label} view — coming soon
-        </div>
+      {view === "list" && (
+        <ListView
+          topicId={topic.id}
+          columns={topic.kanban_columns}
+          onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+        />
+      )}
+      {view === "diagram" && (
+        <DiagramView
+          topicId={topic.id}
+          columns={topic.kanban_columns}
+          onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+        />
       )}
 
       <NotesSection topicId={topic.id} onOpenNote={setOpenNote} />

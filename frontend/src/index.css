@@ -1338,4 +1338,35 @@
     text-align: left;
   }
   .md-preview th { background: var(--bg-elev2); font-weight: 600; }
+
+  /* ─── Timer widget (top bar) ────────────────────────────── */
+  .timer-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 10px;
+    background: var(--bg-elev1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--fg2);
+    transition: border-color var(--dur-fast);
+  }
+  .timer-widget.running {
+    border-color: var(--accent);
+    color: var(--fg1);
+  }
+  .timer-widget-label {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .timer-widget-tick {
+    font-family: var(--font-mono, monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--fg1);
+  }
 }
