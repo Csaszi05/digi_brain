@@ -14,7 +14,7 @@ type Props = {
 export function DroppableColumnBody({ columnId, children }: Props) {
   const { setNodeRef, isOver } = useDroppable({
     id: `column:${columnId}`,
-    data: { type: "column", columnId },
+    data: { type: "column-body", columnId },
   })
   return (
     <div

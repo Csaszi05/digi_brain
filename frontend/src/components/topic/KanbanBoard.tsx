@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import {
   DndContext,
   DragEndEvent,
@@ -9,15 +9,23 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
-import type { KanbanColumn } from "@/api/topics"
+import type { KanbanColumn, TopicWithColumns } from "@/api/topics"
 import {
   useTopicTasksQuery,
   useUpdateTaskMutation,
   type Task,
 } from "@/api/tasks"
+import { useUpdateColumnMutation } from "@/api/columns"
 import { useTopicLinksQuery } from "@/api/links"
 import { computeBlockingState } from "@/lib/blockingState"
 import { TaskCard } from "./TaskCard"
@@ -47,6 +55,49 @@ function groupAndSort(tasks: Task[]): Map<string, Task[]> {
 }
 
 const TASKS_KEY = (topicId: string) => ["tasks", { topicId }] as const
+const TOPIC_DETAIL_KEY = (id: string) => ["topics", id] as const
+
+/**
+ * Wrap a column in useSortable. Drag listeners are forwarded to the grip handle
+ * inside ColumnHeader via render-prop, so dragging anywhere else in the column
+ * (cards, buttons, body) doesn't accidentally start a column drag.
+ */
+function SortableColumnItem({
+  columnId,
+  children,
+}: {
+  columnId: string
+  children: (args: {
+    dragHandleProps: ReturnType<typeof useSortable>["listeners"] &
+      ReturnType<typeof useSortable>["attributes"]
+    isDragging: boolean
+  }) => ReactNode
+}) {
+  const sortable = useSortable({
+    id: columnId,
+    data: { type: "column", columnId },
+  })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(sortable.transform),
+    transition: sortable.transition,
+    opacity: sortable.isDragging ? 0.5 : 1,
+  }
+
+  // Combine attributes + listeners into a single props bag for the drag handle.
+  // We cast through unknown to avoid clashing aria-* type narrowing.
+  const dragHandleProps = {
+    ...(sortable.attributes as object),
+    ...(sortable.listeners as object),
+  } as ReturnType<typeof useSortable>["listeners"] &
+    ReturnType<typeof useSortable>["attributes"]
+
+  return (
+    <div ref={sortable.setNodeRef} style={style} className="kb-col group/col">
+      {children({ dragHandleProps, isDragging: sortable.isDragging })}
+    </div>
+  )
+}
 
 type Props = {
   topicId: string
@@ -68,6 +119,7 @@ export function KanbanBoard({
   const tasksQuery = useTopicTasksQuery(topicId)
   const linksQuery = useTopicLinksQuery(topicId)
   const updateTask = useUpdateTaskMutation(topicId)
+  const updateColumn = useUpdateColumnMutation(topicId)
 
   const [internalAddingForColumn, setInternalAddingForColumn] = useState<string | null>(null)
   const addingForColumn = addingForColumnProp ?? internalAddingForColumn
@@ -96,33 +148,50 @@ export function KanbanBoard({
 
   const handleDragStart = (e: DragStartEvent) => {
     const id = e.active.id as string
-    const found = (tasksQuery.data ?? []).find((t) => t.id === id) ?? null
-    setActiveTask(found)
+    const type = (e.active.data.current as { type?: string } | undefined)?.type
+    if (type === "task") {
+      const found = (tasksQuery.data ?? []).find((t) => t.id === id) ?? null
+      setActiveTask(found)
+    }
   }
 
-  const handleDragEnd = async (e: DragEndEvent) => {
-    setActiveTask(null)
+  const handleColumnReorder = async (activeId: string, overId: string) => {
+    const oldIdx = sortedColumns.findIndex((c) => c.id === activeId)
+    const newIdx = sortedColumns.findIndex((c) => c.id === overId)
+    if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return
 
-    const { active, over } = e
-    if (!over) return
+    const reordered = arrayMove(sortedColumns, oldIdx, newIdx)
+    const renumbered = reordered.map((c, i) => ({ ...c, position: i }))
 
-    const activeId = active.id as string
-    const overId = over.id as string
-    if (activeId === overId) return
+    // Optimistic cache update on the topic detail
+    queryClient.setQueryData<TopicWithColumns>(
+      TOPIC_DETAIL_KEY(topicId),
+      (old) => (old ? { ...old, kanban_columns: renumbered } : old)
+    )
 
+    try {
+      await Promise.all(
+        renumbered
+          .filter((c, i) => sortedColumns.find((o) => o.id === c.id)?.position !== i)
+          .map((c) => updateColumn.mutateAsync({ id: c.id, position: c.position }))
+      )
+    } catch {
+      queryClient.invalidateQueries({ queryKey: TOPIC_DETAIL_KEY(topicId) })
+    }
+  }
+
+  const handleTaskReorder = async (activeId: string, overId: string, e: DragEndEvent) => {
     const allTasks = tasksQuery.data ?? []
     const moving = allTasks.find((t) => t.id === activeId)
     if (!moving) return
 
-    // Resolve destination column id and target index inside that column.
     let destColumnId: string
     let destIndex: number
 
-    const overData = over.data.current as { type?: string; columnId?: string } | undefined
-    if (overData?.type === "column" && overData.columnId) {
+    const overData = e.over!.data.current as { type?: string; columnId?: string } | undefined
+    if (overData?.type === "column-body" && overData.columnId) {
       destColumnId = overData.columnId
       const list = tasksByColumn.get(destColumnId) ?? []
-      // If the dragged task is already in this column, drop at the end means same column reorder
       destIndex = list.filter((t) => t.id !== activeId).length
     } else if (overData?.type === "task" && overData.columnId) {
       destColumnId = overData.columnId
@@ -133,7 +202,6 @@ export function KanbanBoard({
       return
     }
 
-    // Build the new ordering for source + destination columns.
     const sourceColumnId = moving.column_id
     const sourceList = (tasksByColumn.get(sourceColumnId) ?? []).filter((t) => t.id !== activeId)
     const destListWithoutMoving =
@@ -145,21 +213,15 @@ export function KanbanBoard({
     const movedTask: Task = { ...moving, column_id: destColumnId }
     newDestList.splice(destIndex, 0, movedTask)
 
-    // Renumber positions.
     const updates: { id: string; column_id: string; position: number }[] = []
     const rebuilt: Task[] = []
 
     for (const col of sortedColumns) {
       let list: Task[]
-      if (col.id === destColumnId && col.id === sourceColumnId) {
-        list = newDestList
-      } else if (col.id === destColumnId) {
-        list = newDestList
-      } else if (col.id === sourceColumnId) {
-        list = sourceList
-      } else {
-        list = tasksByColumn.get(col.id) ?? []
-      }
+      if (col.id === destColumnId && col.id === sourceColumnId) list = newDestList
+      else if (col.id === destColumnId) list = newDestList
+      else if (col.id === sourceColumnId) list = sourceList
+      else list = tasksByColumn.get(col.id) ?? []
 
       list.forEach((t, idx) => {
         const original = allTasks.find((o) => o.id === t.id)!
@@ -171,10 +233,8 @@ export function KanbanBoard({
       })
     }
 
-    // Optimistic cache update.
     queryClient.setQueryData<Task[]>(TASKS_KEY(topicId), rebuilt)
 
-    // Send PATCHes for affected tasks (parallel).
     try {
       await Promise.all(
         updates.map((u) =>
@@ -186,8 +246,25 @@ export function KanbanBoard({
         )
       )
     } catch {
-      // On failure, refetch to restore truth.
       queryClient.invalidateQueries({ queryKey: TASKS_KEY(topicId) })
+    }
+  }
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    setActiveTask(null)
+    const { active, over } = e
+    if (!over) return
+
+    const activeId = active.id as string
+    const overId = over.id as string
+    if (activeId === overId) return
+
+    const activeType = (active.data.current as { type?: string } | undefined)?.type
+
+    if (activeType === "column") {
+      await handleColumnReorder(activeId, overId)
+    } else if (activeType === "task") {
+      await handleTaskReorder(activeId, overId, e)
     }
   }
 
@@ -200,79 +277,90 @@ export function KanbanBoard({
       onDragCancel={() => setActiveTask(null)}
     >
       <div className="kb-board-wrap">
-        <div className="kb-board">
-          {sortedColumns.map((col, idx) => {
-            const tasks = tasksByColumn.get(col.id) ?? []
-            const stripeColor = colorForColumn(col, idx)
-            return (
-              <div key={col.id} className="kb-col">
-                <div className="kb-col-stripe" style={{ background: stripeColor }} />
-                <ColumnHeader
-                  column={col}
-                  topicId={topicId}
-                  taskCount={tasks.length}
-                  stripeColor={stripeColor}
-                  onAddTask={() => setAddingForColumn(col.id)}
-                />
-                <DroppableColumnBody columnId={col.id}>
-                  {tasksQuery.isLoading && (
-                    <div className="px-2 py-3 text-xs text-fg3">Loading…</div>
-                  )}
-                  {tasksQuery.isError && (
-                    <div className="px-2 py-3 text-xs text-danger">Failed to load tasks</div>
-                  )}
-                  <SortableContext
-                    items={tasks.map((t) => t.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {tasks.map((t) => (
-                      <TaskCard
-                        key={t.id}
-                        task={t}
-                        onClick={onTaskClick}
-                        blocking={computeBlockingState(
-                          t.id,
-                          linksQuery.data ?? [],
-                          tasksQuery.data ?? [],
-                          columns
-                        )}
+        <SortableContext
+          items={sortedColumns.map((c) => c.id)}
+          strategy={horizontalListSortingStrategy}
+        >
+          <div className="kb-board">
+            {sortedColumns.map((col, idx) => {
+              const tasks = tasksByColumn.get(col.id) ?? []
+              const stripeColor = colorForColumn(col, idx)
+              return (
+                <SortableColumnItem key={col.id} columnId={col.id}>
+                  {({ dragHandleProps, isDragging }) => (
+                    <>
+                      <div className="kb-col-stripe" style={{ background: stripeColor }} />
+                      <ColumnHeader
+                        column={col}
+                        topicId={topicId}
+                        taskCount={tasks.length}
+                        stripeColor={stripeColor}
+                        onAddTask={() => setAddingForColumn(col.id)}
+                        dragHandleProps={dragHandleProps}
+                        isDraggingColumn={isDragging}
                       />
-                    ))}
-                  </SortableContext>
-                  {addingForColumn === col.id && (
-                    <AddTaskInline
-                      topicId={topicId}
-                      columnId={col.id}
-                      onClose={() => setAddingForColumn(null)}
-                    />
+                      <DroppableColumnBody columnId={col.id}>
+                        {tasksQuery.isLoading && (
+                          <div className="px-2 py-3 text-xs text-fg3">Loading…</div>
+                        )}
+                        {tasksQuery.isError && (
+                          <div className="px-2 py-3 text-xs text-danger">Failed to load tasks</div>
+                        )}
+                        <SortableContext
+                          items={tasks.map((t) => t.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {tasks.map((t) => (
+                            <TaskCard
+                              key={t.id}
+                              task={t}
+                              onClick={onTaskClick}
+                              blocking={computeBlockingState(
+                                t.id,
+                                linksQuery.data ?? [],
+                                tasksQuery.data ?? [],
+                                columns
+                              )}
+                            />
+                          ))}
+                        </SortableContext>
+                        {addingForColumn === col.id && (
+                          <AddTaskInline
+                            topicId={topicId}
+                            columnId={col.id}
+                            onClose={() => setAddingForColumn(null)}
+                          />
+                        )}
+                        {addingForColumn !== col.id && (
+                          <button
+                            type="button"
+                            className="kb-add-task"
+                            onClick={() => setAddingForColumn(col.id)}
+                          >
+                            <Plus size={12} strokeWidth={1.5} />
+                            Add task
+                          </button>
+                        )}
+                      </DroppableColumnBody>
+                    </>
                   )}
-                  {addingForColumn !== col.id && (
-                    <button
-                      type="button"
-                      className="kb-add-task"
-                      onClick={() => setAddingForColumn(col.id)}
-                    >
-                      <Plus size={12} strokeWidth={1.5} />
-                      Add task
-                    </button>
-                  )}
-                </DroppableColumnBody>
-              </div>
-            )
-          })}
-          {addingColumn ? (
-            <AddColumnInline topicId={topicId} onClose={() => setAddingColumn(false)} />
-          ) : (
-            <button
-              type="button"
-              className="kb-add-col"
-              onClick={() => setAddingColumn(true)}
-            >
-              <Plus size={14} strokeWidth={1.5} />
-              Add column
-            </button>
-          )}
-        </div>
+                </SortableColumnItem>
+              )
+            })}
+            {addingColumn ? (
+              <AddColumnInline topicId={topicId} onClose={() => setAddingColumn(false)} />
+            ) : (
+              <button
+                type="button"
+                className="kb-add-col"
+                onClick={() => setAddingColumn(true)}
+              >
+                <Plus size={14} strokeWidth={1.5} />
+                Add column
+              </button>
+            )}
+          </div>
+        </SortableContext>
       </div>
 
       <DragOverlay>

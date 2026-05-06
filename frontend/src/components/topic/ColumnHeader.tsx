@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type HTMLAttributes } from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { Check, MoreHorizontal, Plus, Trash2, X } from "lucide-react"
+import { Check, GripVertical, MoreHorizontal, Plus, Trash2, X } from "lucide-react"
 import type { KanbanColumn } from "@/api/topics"
 import { useDeleteColumnMutation, useUpdateColumnMutation } from "@/api/columns"
 
@@ -21,9 +21,20 @@ type Props = {
   taskCount: number
   stripeColor: string
   onAddTask: () => void
+  /** Spread on the grip icon so dnd-kit can detect drag-from-handle. */
+  dragHandleProps?: HTMLAttributes<HTMLButtonElement>
+  isDraggingColumn?: boolean
 }
 
-export function ColumnHeader({ column, topicId, taskCount, stripeColor, onAddTask }: Props) {
+export function ColumnHeader({
+  column,
+  topicId,
+  taskCount,
+  stripeColor,
+  onAddTask,
+  dragHandleProps,
+  isDraggingColumn,
+}: Props) {
   const update = useUpdateColumnMutation(topicId)
   const del = useDeleteColumnMutation(topicId)
 
@@ -68,8 +79,30 @@ export function ColumnHeader({ column, topicId, taskCount, stripeColor, onAddTas
   }
 
   return (
-    <div className="kb-col-head">
+    <div
+      className="kb-col-head"
+      style={isDraggingColumn ? { cursor: "grabbing", background: "var(--bg-hover)" } : undefined}
+    >
       <div className="kb-col-head-name flex-1 min-w-0">
+        {dragHandleProps && (
+          <button
+            type="button"
+            className="opacity-0 group-hover/col:opacity-100 transition-opacity"
+            aria-label="Drag column"
+            style={{
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              cursor: "grab",
+              color: "var(--fg3)",
+              display: "grid",
+              placeItems: "center",
+            }}
+            {...dragHandleProps}
+          >
+            <GripVertical size={12} strokeWidth={1.5} />
+          </button>
+        )}
         <span
           className="tag-dot shrink-0"
           style={{ background: stripeColor, width: 8, height: 8 }}
