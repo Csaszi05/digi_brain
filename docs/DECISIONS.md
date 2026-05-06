@@ -115,6 +115,54 @@ Ez a fájl azokat a fontos tervezési döntéseket gyűjti össze, amiket menet 
 
 ---
 
+## 2026-05-06 — Open-source self-hosted pozicionálás
+
+**Döntés:** A DigiBrain **open-source és self-hosted**. A felhasználó saját maga telepíti és üzemelteti (Docker Compose-szal), az adatai a saját gépén/szerverén maradnak. **Nincs SaaS, nincs centralizált hosting**, nincs telemetria.
+
+**Indoklás:**
+- A target user (single-user, "második agy") gyakran adatszuverenitást akar
+- Egyszerűbb biztonsági modell — bizalom-alapú, nem kell sandbox SaaS-szintű threat modelhez
+- Kevesebb infrastruktúra fenntartani (nincs auth backend, billing, multi-tenant DB)
+- Lehetővé teszi a későbbi plugin systemet (lásd [EXTENSIBILITY.md](EXTENSIBILITY.md)) — self-hosted környezetben a user maga dönt mit telepít, nem kell minden plugint security-review-zni
+
+**Hatás:**
+- A README és minden dokumentáció hangsúlyozza a self-hosted tényt
+- Lehetséges későbbi multi-user "team" verzió is (megosztás), de továbbra is self-hosted
+- A licenc valószínűleg permissive (MIT vagy Apache 2.0) — később döntjük el
+
+**Alternatívák elvetve:**
+- **SaaS-only:** elveszti az adatszuverenitás előnyt, drága fenntartás
+- **Cloud-first hibrid:** komplex sync, nem fér bele a single-developer kapacitásba
+
+---
+
+## 2026-05-06 — Plugin architektúra Phase 6+-ra halasztva, 3-szintű roadmap
+
+**Döntés:** A WordPress-szerű plugin ekoszisztéma jó hosszú távú vízió, de **Phase 6 előtt nem építjük**. Helyette egy 3-szintű roadmapet követünk:
+
+1. **Phase 1-5 (most):** Core funkciók — auth, topics, tasks, time, finance, vault, notes
+2. **Phase 6 (Custom Content Types):** User UI-ról definiál mezőkkel ellátott tartalom típust (`content_types` + `content_records` táblák, `fields` JSONB séma). A "gym tracking" példa ezzel megoldódik kód nélkül.
+3. **Phase 7+ (Plugin csomagok):** Mások által írt csomagok (manifest + frontend bundle) telepíthetők a `plugins/` mappába. Build-time discovery.
+4. **Hosszú távú (Full plugin system):** Backend kódfuttatással, csak ha emergens közösségi igény van.
+
+**Indoklás:**
+- Plugin systemet üres core-ra építeni hiábavaló — nincs mihez kapcsolódni
+- A Szint 1 (Custom Content Types) megoldja a "tracker for X" use-case-ek 80%-át kód nélkül
+- A self-hosted/OSS modell egyszerűsíti a plugin biztonságot (a user maga telepíti, implicit bizalom)
+- Marketplace infrastruktúra elkerülhető — pluginok git repóként megoszthatók, az app `git clone`-olja a `plugins/` alá
+
+**Hatás:**
+- Új doc: [EXTENSIBILITY.md](EXTENSIBILITY.md) részletes roadmap, séma, manifest formátum
+- A `tasks`, `topics`, `notes` táblák **nem** lesznek plugin-ek, mindig core funkció
+- A Phase 6 előtti séma változások már most figyelnek arra hogy a `content_records.data` JSONB rugalmas legyen
+- A frontend Vite config Phase 7-ben fog változni (plugin scan + dynamic import)
+
+**Alternatívák elvetve:**
+- **WordPress-szerű full plugin system az elejétől:** 3-6 hónap extra munka, nincs core mihez kapcsolni
+- **Csak Custom Content Types, plugin distribution sosem:** elveszti a community-driven bővítés értékét hosszú távon
+
+---
+
 ## 2026-05-05 — Markdown szinkron későbbre halasztva
 
 **Döntés:** Az MVP-ben a jegyzetek csak az adatbázisban tárolódnak. A `notes` tábla `file_path` mezője NULLABLE — később, amikor implementáljuk a fájlrendszer szinkronizálást, ez megkapja az értéket.

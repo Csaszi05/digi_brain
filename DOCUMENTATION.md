@@ -2,12 +2,15 @@
 
 ## Projekt Összefoglaló
 
-A DigiBrain egy önálló, self-hosted webalkalmazás, amely egyetlen helyen egyesíti a feladatkezelést, időkövetést, projektmenedzsmentet, pénzügyi nyilvántartást és a személyes tudásbázist. Docker konténerben futtatható, így bármely gépen vagy szerveren telepíthető.
+A DigiBrain egy **open-source, self-hosted** webalkalmazás, amely egyetlen helyen egyesíti a feladatkezelést, időkövetést, projektmenedzsmentet, pénzügyi nyilvántartást és a személyes tudásbázist. Docker konténerben futtatható, így bármely gépen vagy szerveren telepíthető — a felhasználó saját maga üzemelteti, az adatai nálla maradnak.
+
+**Hosszú távú vízió:** plugin-alapú bővíthetőség — bárki írhat egy modult (pl. konditermi edzés tracker), megoszthatja, mások telepíthetik. A részleteket lásd a [docs/EXTENSIBILITY.md](docs/EXTENSIBILITY.md)-ben.
 
 ## További Dokumentumok
 
 - **[docs/DATABASE.md](docs/DATABASE.md)** — Részletes adatbázis séma, táblák, kapcsolatok
 - **[docs/TOPICS.md](docs/TOPICS.md)** — Topicok koncepciója: mappa + konténer szerep, mit tartalmazhatnak, hogyan néznek ki, lekérdezések
+- **[docs/EXTENSIBILITY.md](docs/EXTENSIBILITY.md)** — Bővíthetőség roadmap: Custom Content Types → Plugin csomagok → Full plugin system
 - **[docs/DECISIONS.md](docs/DECISIONS.md)** — Tervezési döntések naplója (mit, miért választottunk)
 
 ---
@@ -293,10 +296,18 @@ docker compose up -d
 - [ ] Mobil-barát reszponzív design
 - [ ] Teljesítmény optimalizálás
 
-### Jövőbeli — Megosztás (Sharing)
-- [ ] Téma megosztása más felhasználóval
+### Fázis 6 — Custom Content Types (bővíthetőség alapja)
+- [ ] User-definiált tartalom típusok (mező lista, generikus CRUD)
+- [ ] Generikus form + tabla nézet a custom types-hoz
+- [ ] Topic integráció (`topic_link` mező)
+- [ ] Auto-generált stat-ok számmezőkre
+- [ ] Lásd: [docs/EXTENSIBILITY.md](docs/EXTENSIBILITY.md) — Szint 1
+
+### Jövőbeli — Plugin csomagok és Megosztás
+- [ ] Plugin csomagok deklaratív manifest-tel (lásd: [docs/EXTENSIBILITY.md](docs/EXTENSIBILITY.md) — Szint 2)
+- [ ] Téma megosztása más felhasználóval (`topic_shares` tábla)
 - [ ] Jogosultsági szintek: olvasás, szerkesztés, admin
-- [ ] Lásd: [docs/DATABASE.md](docs/DATABASE.md) — `topic_shares` tábla terve
+- [ ] Full plugin system kódfuttatással (Szint 3) — csak ha közösségi igény van
 
 ---
 
