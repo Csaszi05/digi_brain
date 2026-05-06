@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import type { Task } from "@/api/tasks"
 
 const PRIORITY_DOT_CLASS: Record<Task["priority"], string> = {
@@ -22,12 +24,42 @@ function formatDueDate(iso: string | null): string | null {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-export function TaskCard({ task }: { task: Task }) {
+type Props = {
+  task: Task
+  /** When true (e.g. inside DragOverlay), skip the sortable hook and render plain. */
+  asOverlay?: boolean
+  onClick?: (task: Task) => void
+}
+
+export function TaskCard({ task, asOverlay = false, onClick }: Props) {
+  const sortable = useSortable({
+    id: task.id,
+    data: { type: "task", columnId: task.column_id },
+    disabled: asOverlay,
+  })
+
   const due = formatDueDate(task.due_date)
   const isToday = due === "Today"
 
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(sortable.transform),
+    transition: sortable.transition,
+    opacity: sortable.isDragging && !asOverlay ? 0 : 1,
+    cursor: asOverlay ? "grabbing" : "grab",
+  }
+
   return (
-    <div className="kb-card">
+    <div
+      ref={asOverlay ? undefined : sortable.setNodeRef}
+      style={style}
+      className="kb-card"
+      {...(asOverlay ? {} : sortable.attributes)}
+      {...(asOverlay ? {} : sortable.listeners)}
+      onClick={() => {
+        // dnd-kit suppresses click when a real drag happened — this fires only on a clean click.
+        if (!asOverlay) onClick?.(task)
+      }}
+    >
       <div className="kb-card-title">{task.title}</div>
       {task.description && <div className="kb-card-desc">{task.description}</div>}
       <div className="kb-card-foot">

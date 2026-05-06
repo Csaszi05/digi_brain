@@ -8,11 +8,12 @@ import {
   CalendarRange,
   Workflow,
   Plus,
-  MoreHorizontal,
 } from "lucide-react"
 import { useTopicQuery } from "@/api/topics"
-import { useTopicTasksQuery } from "@/api/tasks"
+import { useTopicTasksQuery, type Task } from "@/api/tasks"
 import { KanbanBoard } from "@/components/topic/KanbanBoard"
+import { TaskPanel } from "@/components/topic/TaskPanel"
+import { TopicHeader } from "@/components/topic/TopicHeader"
 
 type ViewMode = "kanban" | "list" | "pipeline" | "tree" | "roadmap" | "diagram"
 
@@ -28,6 +29,7 @@ const VIEW_TABS: { id: ViewMode; label: string; icon: typeof KanbanSquare }[] = 
 export default function TopicDetail() {
   const { id } = useParams<{ id: string }>()
   const [view, setView] = useState<ViewMode>("kanban")
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const topicQuery = useTopicQuery(id)
   const tasksQuery = useTopicTasksQuery(id)
 
@@ -45,56 +47,43 @@ export default function TopicDetail() {
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
-      {/* Page head */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-2xl"
-            style={{ background: "var(--bg-elev2)" }}
-            aria-label="Change icon"
-          >
-            {topic.icon ?? "📁"}
-          </button>
-          <div className="min-w-0">
-            <h1 className="truncate">{topic.name}</h1>
-            <div className="text-13 text-fg3 mt-0.5">
-              {taskCount} task{taskCount === 1 ? "" : "s"}
+      <TopicHeader
+        topic={topic}
+        taskCount={taskCount}
+        rightSlot={
+          <>
+            <div className="tabs">
+              {VIEW_TABS.map((t) => {
+                const Icon = t.icon
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="tab"
+                    data-active={view === t.id ? "true" : "false"}
+                    onClick={() => setView(t.id)}
+                  >
+                    <Icon size={13} strokeWidth={1.5} />
+                    {t.label}
+                  </button>
+                )
+              })}
             </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="tabs">
-            {VIEW_TABS.map((t) => {
-              const Icon = t.icon
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="tab"
-                  data-active={view === t.id ? "true" : "false"}
-                  onClick={() => setView(t.id)}
-                >
-                  <Icon size={13} strokeWidth={1.5} />
-                  {t.label}
-                </button>
-              )
-            })}
-          </div>
-          <button type="button" className="btn btn-primary">
-            <Plus size={14} strokeWidth={1.5} />
-            Add task
-          </button>
-          <button type="button" className="btn btn-icon" aria-label="More options">
-            <MoreHorizontal size={16} strokeWidth={1.5} />
-          </button>
-        </div>
-      </div>
+            <button type="button" className="btn btn-primary">
+              <Plus size={14} strokeWidth={1.5} />
+              Add task
+            </button>
+          </>
+        }
+      />
 
       {/* View body */}
       {view === "kanban" && (
-        <KanbanBoard topicId={topic.id} columns={topic.kanban_columns} />
+        <KanbanBoard
+          topicId={topic.id}
+          columns={topic.kanban_columns}
+          onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+        />
       )}
       {view !== "kanban" && (
         <div
@@ -108,6 +97,19 @@ export default function TopicDetail() {
           {VIEW_TABS.find((t) => t.id === view)?.label} view — coming soon
         </div>
       )}
+
+      {selectedTaskId && (() => {
+        const selected = tasksQuery.data?.find((t) => t.id === selectedTaskId)
+        if (!selected) return null
+        return (
+          <TaskPanel
+            task={selected}
+            columns={topic.kanban_columns}
+            topicId={topic.id}
+            onClose={() => setSelectedTaskId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
