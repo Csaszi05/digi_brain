@@ -30,6 +30,7 @@ export default function TopicDetail() {
   const { id } = useParams<{ id: string }>()
   const [view, setView] = useState<ViewMode>("kanban")
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [addingForColumn, setAddingForColumn] = useState<string | null>(null)
   const topicQuery = useTopicQuery(id)
   const tasksQuery = useTopicTasksQuery(id)
 
@@ -44,6 +45,8 @@ export default function TopicDetail() {
 
   const topic = topicQuery.data
   const taskCount = tasksQuery.data?.length ?? 0
+  const sortedColumns = [...topic.kanban_columns].sort((a, b) => a.position - b.position)
+  const firstColumnId = sortedColumns[0]?.id
 
   return (
     <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
@@ -69,7 +72,12 @@ export default function TopicDetail() {
                 )
               })}
             </div>
-            <button type="button" className="btn btn-primary">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!firstColumnId}
+              onClick={() => firstColumnId && setAddingForColumn(firstColumnId)}
+            >
               <Plus size={14} strokeWidth={1.5} />
               Add task
             </button>
@@ -83,6 +91,8 @@ export default function TopicDetail() {
           topicId={topic.id}
           columns={topic.kanban_columns}
           onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+          addingForColumn={addingForColumn}
+          onAddingForColumnChange={setAddingForColumn}
         />
       )}
       {view !== "kanban" && (

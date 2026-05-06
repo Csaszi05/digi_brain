@@ -14,6 +14,9 @@ class TaskCreate(BaseModel):
     description: str | None = None
     column_id: str
     priority: TaskPriority = TaskPriority.medium
+    parent_task_id: str | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     due_date: datetime | None = None
 
 
@@ -22,8 +25,13 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     column_id: str | None = None
     priority: TaskPriority | None = None
+    parent_task_id: str | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     due_date: datetime | None = None
     position: int | None = None
+    position_x: int | None = None
+    position_y: int | None = None
 
 
 class TaskResponse(BaseModel):
@@ -31,11 +39,16 @@ class TaskResponse(BaseModel):
     topic_id: str
     user_id: str
     column_id: str
+    parent_task_id: str | None = None
     title: str
     description: str | None = None
     priority: TaskPriority
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     due_date: datetime | None = None
     position: int
+    position_x: int | None = None
+    position_y: int | None = None
     completed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

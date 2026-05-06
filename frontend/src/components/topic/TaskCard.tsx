@@ -1,6 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { Lock } from "lucide-react"
 import type { Task } from "@/api/tasks"
+import type { BlockingState } from "@/lib/blockingState"
 
 const PRIORITY_DOT_CLASS: Record<Task["priority"], string> = {
   high: "dot-high",
@@ -29,9 +31,10 @@ type Props = {
   /** When true (e.g. inside DragOverlay), skip the sortable hook and render plain. */
   asOverlay?: boolean
   onClick?: (task: Task) => void
+  blocking?: BlockingState
 }
 
-export function TaskCard({ task, asOverlay = false, onClick }: Props) {
+export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) {
   const sortable = useSortable({
     id: task.id,
     data: { type: "task", columnId: task.column_id },
@@ -41,10 +44,12 @@ export function TaskCard({ task, asOverlay = false, onClick }: Props) {
   const due = formatDueDate(task.due_date)
   const isToday = due === "Today"
 
+  const isCurrentlyBlocked = !!blocking?.currentlyBlocked && !task.completed_at
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
-    opacity: sortable.isDragging && !asOverlay ? 0 : 1,
+    opacity: sortable.isDragging && !asOverlay ? 0 : isCurrentlyBlocked ? 0.6 : 1,
     cursor: asOverlay ? "grabbing" : "grab",
   }
 
@@ -60,7 +65,17 @@ export function TaskCard({ task, asOverlay = false, onClick }: Props) {
         if (!asOverlay) onClick?.(task)
       }}
     >
-      <div className="kb-card-title">{task.title}</div>
+      <div className="kb-card-title flex items-start gap-1.5">
+        {isCurrentlyBlocked && (
+          <Lock
+            size={12}
+            strokeWidth={1.5}
+            style={{ color: "var(--danger)", flexShrink: 0, marginTop: 3 }}
+            aria-label="Currently blocked"
+          />
+        )}
+        <span className="flex-1 min-w-0">{task.title}</span>
+      </div>
       {task.description && <div className="kb-card-desc">{task.description}</div>}
       <div className="kb-card-foot">
         <span
@@ -77,6 +92,19 @@ export function TaskCard({ task, asOverlay = false, onClick }: Props) {
             }
           >
             {due}
+          </span>
+        )}
+        {blocking && (blocking.blockedByCount > 0 || blocking.blocksCount > 0) && (
+          <span
+            className="ml-auto inline-flex items-center gap-2 text-xs tabular-nums text-fg3"
+            title={`${blocking.blockedByCount} blocker${blocking.blockedByCount === 1 ? "" : "s"} · blocks ${blocking.blocksCount}`}
+          >
+            {blocking.blockedByCount > 0 && (
+              <span aria-label="Blocked by count">⛓ {blocking.blockedByCount}</span>
+            )}
+            {blocking.blocksCount > 0 && (
+              <span aria-label="Blocks count">→ {blocking.blocksCount}</span>
+            )}
           </span>
         )}
       </div>

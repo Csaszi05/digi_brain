@@ -11,16 +11,20 @@ import {
 } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useQueryClient } from "@tanstack/react-query"
-import { Plus, MoreHorizontal } from "lucide-react"
+import { Plus } from "lucide-react"
 import type { KanbanColumn } from "@/api/topics"
 import {
   useTopicTasksQuery,
   useUpdateTaskMutation,
   type Task,
 } from "@/api/tasks"
+import { useTopicLinksQuery } from "@/api/links"
+import { computeBlockingState } from "@/lib/blockingState"
 import { TaskCard } from "./TaskCard"
 import { AddTaskInline } from "./AddTaskInline"
 import { DroppableColumnBody } from "./DroppableColumnBody"
+import { ColumnHeader } from "./ColumnHeader"
+import { AddColumnInline } from "./AddColumnInline"
 
 const COLUMN_COLORS = ["#818cf8", "#34d399", "#fbbf24", "#fb7185", "#a78bfa", "#60a5fa"]
 
@@ -48,14 +52,30 @@ type Props = {
   topicId: string
   columns: KanbanColumn[]
   onTaskClick?: (task: Task) => void
+  /** Controlled adding-state. If provided, parent owns it (so external triggers like a header button can drive it). */
+  addingForColumn?: string | null
+  onAddingForColumnChange?: (id: string | null) => void
 }
 
-export function KanbanBoard({ topicId, columns, onTaskClick }: Props) {
+export function KanbanBoard({
+  topicId,
+  columns,
+  onTaskClick,
+  addingForColumn: addingForColumnProp,
+  onAddingForColumnChange,
+}: Props) {
   const queryClient = useQueryClient()
   const tasksQuery = useTopicTasksQuery(topicId)
+  const linksQuery = useTopicLinksQuery(topicId)
   const updateTask = useUpdateTaskMutation(topicId)
 
-  const [addingForColumn, setAddingForColumn] = useState<string | null>(null)
+  const [internalAddingForColumn, setInternalAddingForColumn] = useState<string | null>(null)
+  const addingForColumn = addingForColumnProp ?? internalAddingForColumn
+  const setAddingForColumn = (id: string | null) => {
+    if (onAddingForColumnChange) onAddingForColumnChange(id)
+    else setInternalAddingForColumn(id)
+  }
+  const [addingColumn, setAddingColumn] = useState(false)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
 
   const sensors = useSensors(
@@ -187,29 +207,13 @@ export function KanbanBoard({ topicId, columns, onTaskClick }: Props) {
             return (
               <div key={col.id} className="kb-col">
                 <div className="kb-col-stripe" style={{ background: stripeColor }} />
-                <div className="kb-col-head">
-                  <div className="kb-col-head-name">
-                    <span
-                      className="tag-dot"
-                      style={{ background: stripeColor, width: 8, height: 8 }}
-                    />
-                    {col.name}
-                    <span className="kb-col-count">{tasks.length}</span>
-                  </div>
-                  <div className="flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      className="sb-icon-btn"
-                      aria-label="Add task"
-                      onClick={() => setAddingForColumn(col.id)}
-                    >
-                      <Plus size={14} strokeWidth={1.5} />
-                    </button>
-                    <button type="button" className="sb-icon-btn" aria-label="Column options">
-                      <MoreHorizontal size={14} strokeWidth={1.5} />
-                    </button>
-                  </div>
-                </div>
+                <ColumnHeader
+                  column={col}
+                  topicId={topicId}
+                  taskCount={tasks.length}
+                  stripeColor={stripeColor}
+                  onAddTask={() => setAddingForColumn(col.id)}
+                />
                 <DroppableColumnBody columnId={col.id}>
                   {tasksQuery.isLoading && (
                     <div className="px-2 py-3 text-xs text-fg3">Loading…</div>
@@ -222,7 +226,17 @@ export function KanbanBoard({ topicId, columns, onTaskClick }: Props) {
                     strategy={verticalListSortingStrategy}
                   >
                     {tasks.map((t) => (
-                      <TaskCard key={t.id} task={t} onClick={onTaskClick} />
+                      <TaskCard
+                        key={t.id}
+                        task={t}
+                        onClick={onTaskClick}
+                        blocking={computeBlockingState(
+                          t.id,
+                          linksQuery.data ?? [],
+                          tasksQuery.data ?? [],
+                          columns
+                        )}
+                      />
                     ))}
                   </SortableContext>
                   {addingForColumn === col.id && (
@@ -246,10 +260,18 @@ export function KanbanBoard({ topicId, columns, onTaskClick }: Props) {
               </div>
             )
           })}
-          <button type="button" className="kb-add-col">
-            <Plus size={14} strokeWidth={1.5} />
-            Add column
-          </button>
+          {addingColumn ? (
+            <AddColumnInline topicId={topicId} onClose={() => setAddingColumn(false)} />
+          ) : (
+            <button
+              type="button"
+              className="kb-add-col"
+              onClick={() => setAddingColumn(true)}
+            >
+              <Plus size={14} strokeWidth={1.5} />
+              Add column
+            </button>
+          )}
         </div>
       </div>
 

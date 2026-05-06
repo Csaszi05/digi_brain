@@ -8,11 +8,16 @@ export type Task = {
   topic_id: string
   user_id: string
   column_id: string
+  parent_task_id: string | null
   title: string
   description: string | null
   priority: TaskPriority
+  start_date: string | null
+  end_date: string | null
   due_date: string | null
   position: number
+  position_x: number | null
+  position_y: number | null
   completed_at: string | null
   created_at: string
   updated_at: string
@@ -23,6 +28,9 @@ export type TaskCreate = {
   description?: string | null
   column_id: string
   priority?: TaskPriority
+  parent_task_id?: string | null
+  start_date?: string | null
+  end_date?: string | null
   due_date?: string | null
 }
 
@@ -31,8 +39,13 @@ export type TaskUpdate = Partial<{
   description: string | null
   column_id: string
   priority: TaskPriority
+  parent_task_id: string | null
+  start_date: string | null
+  end_date: string | null
   due_date: string | null
   position: number
+  position_x: number | null
+  position_y: number | null
 }>
 
 const KEYS = {

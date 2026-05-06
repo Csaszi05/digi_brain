@@ -4,10 +4,12 @@ import { Trash2, X } from "lucide-react"
 import type { KanbanColumn } from "@/api/topics"
 import {
   useDeleteTaskMutation,
+  useTopicTasksQuery,
   useUpdateTaskMutation,
   type Task,
   type TaskPriority,
 } from "@/api/tasks"
+import { TaskLinksSection } from "./TaskLinksSection"
 
 type Props = {
   task: Task
@@ -50,6 +52,7 @@ function formatRelative(iso: string): string {
 export function TaskPanel({ task, columns, topicId, onClose }: Props) {
   const update = useUpdateTaskMutation(topicId)
   const del = useDeleteTaskMutation(topicId)
+  const tasksQuery = useTopicTasksQuery(topicId)
 
   // Local copies for text fields that we save on blur, so typing isn't laggy.
   const [title, setTitle] = useState(task.title)
@@ -202,6 +205,13 @@ export function TaskPanel({ task, columns, topicId, onClose }: Props) {
               ))}
             </select>
           </div>
+
+          <TaskLinksSection
+            task={task}
+            topicId={topicId}
+            allTasks={tasksQuery.data ?? []}
+            columns={columns}
+          />
 
           <div className="tp-meta-row">
             <span>Created</span>
