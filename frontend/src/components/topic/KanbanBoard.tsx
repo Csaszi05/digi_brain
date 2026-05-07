@@ -36,20 +36,36 @@ import { AddColumnInline } from "./AddColumnInline"
 
 const COLUMN_COLORS = ["#818cf8", "#34d399", "#fbbf24", "#fb7185", "#a78bfa", "#60a5fa"]
 
-function colorForColumn(col: KanbanColumn, idx: number): string {
+/** Stable per-column default color: deterministic hash of the column id, so reordering doesn't repaint. */
+function colorForColumn(col: KanbanColumn): string {
   if (col.color) return col.color
   if (col.is_done_column) return "#34d399"
-  return COLUMN_COLORS[idx % COLUMN_COLORS.length]
+  let h = 0
+  for (let i = 0; i < col.id.length; i++) h = (h * 31 + col.id.charCodeAt(i)) | 0
+  return COLUMN_COLORS[Math.abs(h) % COLUMN_COLORS.length]
 }
 
-function groupAndSort(tasks: Task[]): Map<string, Task[]> {
+/** Group only top-level tasks (no parent) by column. Sub-tasks are rendered nested inside their parent card. */
+function groupTopLevelByColumn(tasks: Task[]): Map<string, Task[]> {
   const map = new Map<string, Task[]>()
   for (const t of tasks) {
+    if (t.parent_task_id) continue
     if (!map.has(t.column_id)) map.set(t.column_id, [])
     map.get(t.column_id)!.push(t)
   }
   for (const list of map.values()) {
     list.sort((a, b) => a.position - b.position)
+  }
+  return map
+}
+
+/** Index by parent task id → direct children list. */
+function buildChildrenIndex(tasks: Task[]): Map<string, Task[]> {
+  const map = new Map<string, Task[]>()
+  for (const t of tasks) {
+    if (!t.parent_task_id) continue
+    if (!map.has(t.parent_task_id)) map.set(t.parent_task_id, [])
+    map.get(t.parent_task_id)!.push(t)
   }
   return map
 }
@@ -142,8 +158,18 @@ export function KanbanBoard({
   )
 
   const tasksByColumn = useMemo(
-    () => groupAndSort(tasksQuery.data ?? []),
+    () => groupTopLevelByColumn(tasksQuery.data ?? []),
     [tasksQuery.data]
+  )
+
+  const childrenByParent = useMemo(
+    () => buildChildrenIndex(tasksQuery.data ?? []),
+    [tasksQuery.data]
+  )
+
+  const columnsById = useMemo(
+    () => new Map(columns.map((c) => [c.id, c])),
+    [columns]
   )
 
   const handleDragStart = (e: DragStartEvent) => {
@@ -282,9 +308,9 @@ export function KanbanBoard({
           strategy={horizontalListSortingStrategy}
         >
           <div className="kb-board">
-            {sortedColumns.map((col, idx) => {
+            {sortedColumns.map((col) => {
               const tasks = tasksByColumn.get(col.id) ?? []
-              const stripeColor = colorForColumn(col, idx)
+              const stripeColor = colorForColumn(col)
               return (
                 <SortableColumnItem key={col.id} columnId={col.id}>
                   {({ dragHandleProps, isDragging }) => (
@@ -321,6 +347,9 @@ export function KanbanBoard({
                                 tasksQuery.data ?? [],
                                 columns
                               )}
+                              children={childrenByParent.get(t.id)}
+                              columnsById={columnsById}
+                              topicId={topicId}
                             />
                           ))}
                         </SortableContext>

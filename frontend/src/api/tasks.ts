@@ -51,6 +51,15 @@ export type TaskUpdate = Partial<{
 const KEYS = {
   all: ["tasks"] as const,
   byTopic: (topicId: string) => ["tasks", { topicId }] as const,
+  global: (filter: AllTasksFilter) => ["tasks", "global", filter] as const,
+}
+
+export type AllTasksFilter = {
+  completedSince?: string // YYYY-MM-DD
+  dueBefore?: string // YYYY-MM-DD
+  onlyOpen?: boolean
+  orderBy?: "updated_at" | "due_date" | "completed_at" | "created_at"
+  limit?: number
 }
 
 export function useTopicTasksQuery(topicId: string | undefined) {
@@ -59,6 +68,23 @@ export function useTopicTasksQuery(topicId: string | undefined) {
     enabled: !!topicId,
     queryFn: async () => {
       const { data } = await api.get<Task[]>(`/topics/${topicId}/tasks`)
+      return data
+    },
+  })
+}
+
+/** Cross-topic task list. Used by dashboard widgets. */
+export function useAllTasksQuery(filter: AllTasksFilter = {}) {
+  return useQuery({
+    queryKey: KEYS.global(filter),
+    queryFn: async () => {
+      const params: Record<string, string> = {}
+      if (filter.completedSince) params.completed_since = filter.completedSince
+      if (filter.dueBefore) params.due_before = filter.dueBefore
+      if (filter.onlyOpen) params.only_open = "true"
+      if (filter.orderBy) params.order_by = filter.orderBy
+      if (filter.limit) params.limit = String(filter.limit)
+      const { data } = await api.get<Task[]>("/tasks", { params })
       return data
     },
   })

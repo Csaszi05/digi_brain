@@ -1,8 +1,11 @@
+import { useState } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Lock } from "lucide-react"
+import { ChevronRight, Lock, Plus } from "lucide-react"
 import type { Task } from "@/api/tasks"
 import type { BlockingState } from "@/lib/blockingState"
+import type { KanbanColumn } from "@/api/topics"
+import { AddTaskInline } from "./AddTaskInline"
 
 const PRIORITY_DOT_CLASS: Record<Task["priority"], string> = {
   high: "dot-high",
@@ -32,9 +35,23 @@ type Props = {
   asOverlay?: boolean
   onClick?: (task: Task) => void
   blocking?: BlockingState
+  /** Direct sub-tasks (parent_task_id === task.id). When non-empty, a caret toggles inline expand. */
+  children?: Task[]
+  /** Lookup for column metadata (used to label sub-task status). */
+  columnsById?: Map<string, KanbanColumn>
+  /** Topic id for create-sub-task mutation. */
+  topicId?: string
 }
 
-export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) {
+export function TaskCard({
+  task,
+  asOverlay = false,
+  onClick,
+  blocking,
+  children,
+  columnsById,
+  topicId,
+}: Props) {
   const sortable = useSortable({
     id: task.id,
     data: { type: "task", columnId: task.column_id },
@@ -45,6 +62,9 @@ export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) 
   const isToday = due === "Today"
 
   const isCurrentlyBlocked = !!blocking?.currentlyBlocked && !task.completed_at
+  const hasChildren = !!children && children.length > 0
+  const [expanded, setExpanded] = useState(false)
+  const [addingSub, setAddingSub] = useState(false)
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(sortable.transform),
@@ -52,6 +72,17 @@ export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) 
     opacity: sortable.isDragging && !asOverlay ? 0 : isCurrentlyBlocked ? 0.6 : 1,
     cursor: asOverlay ? "grabbing" : "grab",
   }
+
+  const sortedChildren = (children ?? [])
+    .slice()
+    .sort((a, b) => {
+      // Done sub-tasks last, then by position then created_at
+      const aDone = !!columnsById?.get(a.column_id)?.is_done_column
+      const bDone = !!columnsById?.get(b.column_id)?.is_done_column
+      if (aDone !== bDone) return aDone ? 1 : -1
+      if (a.position !== b.position) return a.position - b.position
+      return a.created_at.localeCompare(b.created_at)
+    })
 
   return (
     <div
@@ -66,6 +97,31 @@ export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) 
       }}
     >
       <div className="kb-card-title flex items-start gap-1.5">
+        {hasChildren && (
+          <button
+            type="button"
+            aria-label={expanded ? "Collapse sub-tasks" : "Expand sub-tasks"}
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded((v) => !v)
+            }}
+            style={{
+              background: "transparent",
+              border: 0,
+              padding: 0,
+              marginTop: 2,
+              cursor: "pointer",
+              color: "var(--fg2)",
+              display: "grid",
+              placeItems: "center",
+              transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 120ms",
+              flexShrink: 0,
+            }}
+          >
+            <ChevronRight size={12} strokeWidth={2} />
+          </button>
+        )}
         {isCurrentlyBlocked && (
           <Lock
             size={12}
@@ -94,6 +150,11 @@ export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) 
             {due}
           </span>
         )}
+        {hasChildren && (
+          <span className="text-xs text-fg3 tabular-nums" title={`${children!.length} sub-tasks`}>
+            ⊞ {children!.length}
+          </span>
+        )}
         {blocking && (blocking.blockedByCount > 0 || blocking.blocksCount > 0) && (
           <span
             className="ml-auto inline-flex items-center gap-2 text-xs tabular-nums text-fg3"
@@ -108,6 +169,72 @@ export function TaskCard({ task, asOverlay = false, onClick, blocking }: Props) 
           </span>
         )}
       </div>
+
+      {expanded && (hasChildren || addingSub) && (
+        <div
+          className="mt-2.5 pt-2 flex flex-col gap-1"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          {sortedChildren.map((c) => {
+            const col = columnsById?.get(c.column_id)
+            const isDone = !!col?.is_done_column
+            return (
+              <div
+                key={c.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onClick?.(c)
+                }}
+                className="flex items-center gap-2 rounded-md px-1.5 py-1 cursor-pointer hover:bg-bg-hover"
+                style={{
+                  fontSize: 12,
+                  color: isDone ? "var(--fg3)" : "var(--fg1)",
+                  textDecoration: isDone ? "line-through" : "none",
+                }}
+              >
+                <span
+                  className={`dot ${PRIORITY_DOT_CLASS[c.priority]}`}
+                  style={{ width: 6, height: 6 }}
+                />
+                <span className="truncate flex-1">{c.title}</span>
+                {col && (
+                  <span
+                    className="text-[10px] shrink-0"
+                    style={{ color: "var(--fg3)" }}
+                  >
+                    {col.name}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+          {addingSub && topicId && (
+            <div onClick={(e) => e.stopPropagation()} className="mt-1">
+              <AddTaskInline
+                topicId={topicId}
+                columnId={task.column_id}
+                parentTaskId={task.id}
+                placeholder="Sub-task title…"
+                onClose={() => setAddingSub(false)}
+              />
+            </div>
+          )}
+          {!addingSub && topicId && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setAddingSub(true)
+              }}
+              className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-fg3 hover:text-fg1 hover:bg-bg-hover"
+              style={{ background: "transparent", border: 0, cursor: "pointer" }}
+            >
+              <Plus size={12} strokeWidth={1.5} />
+              Add sub-task
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,7 @@
 from datetime import datetime
+from typing import Any
 from sqlalchemy import String, DateTime, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 import uuid
@@ -13,6 +15,7 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     master_key_salt: Mapped[str | None] = mapped_column(String(255), nullable=True)
     default_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="HUF")
+    dashboard_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     topics: Mapped[list["Topic"]] = relationship("Topic", back_populates="user", cascade="all, delete-orphan")

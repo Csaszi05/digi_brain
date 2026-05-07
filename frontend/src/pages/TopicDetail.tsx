@@ -85,7 +85,12 @@ export default function TopicDetail() {
               type="button"
               className="btn btn-primary"
               disabled={!firstColumnId}
-              onClick={() => firstColumnId && setAddingForColumn(firstColumnId)}
+              onClick={() => {
+                if (!firstColumnId) return
+                // Inline add-task lives inside KanbanBoard; switch there from any view.
+                if (view !== "kanban") setView("kanban")
+                setAddingForColumn(firstColumnId)
+              }}
             >
               <Plus size={14} strokeWidth={1.5} />
               Add task

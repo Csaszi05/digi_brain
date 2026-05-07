@@ -4,10 +4,18 @@ import { useCreateTaskMutation } from "@/api/tasks"
 type Props = {
   topicId: string
   columnId: string
+  parentTaskId?: string | null
+  placeholder?: string
   onClose: () => void
 }
 
-export function AddTaskInline({ topicId, columnId, onClose }: Props) {
+export function AddTaskInline({
+  topicId,
+  columnId,
+  parentTaskId = null,
+  placeholder = "Task title…",
+  onClose,
+}: Props) {
   const [title, setTitle] = useState("")
   const ref = useRef<HTMLTextAreaElement>(null)
   const submittedRef = useRef(false)
@@ -30,7 +38,11 @@ export function AddTaskInline({ topicId, columnId, onClose }: Props) {
       return
     }
     try {
-      await create.mutateAsync({ title: trimmed, column_id: columnId })
+      await create.mutateAsync({
+        title: trimmed,
+        column_id: columnId,
+        parent_task_id: parentTaskId,
+      })
       onClose()
     } catch {
       submittedRef.current = false
@@ -44,7 +56,7 @@ export function AddTaskInline({ topicId, columnId, onClose }: Props) {
         className="kb-card-input"
         rows={2}
         value={title}
-        placeholder="Task title…"
+        placeholder={placeholder}
         disabled={create.isPending}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {

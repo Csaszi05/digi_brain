@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type HTMLAttributes } from "react"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
-import { Check, GripVertical, MoreHorizontal, Plus, Trash2, X } from "lucide-react"
+import { Check, GripVertical, MoreHorizontal, Pencil, Plus, Trash2, X } from "lucide-react"
 import type { KanbanColumn } from "@/api/topics"
 import { useDeleteColumnMutation, useUpdateColumnMutation } from "@/api/columns"
 
@@ -87,20 +87,21 @@ export function ColumnHeader({
         {dragHandleProps && (
           <button
             type="button"
-            className="opacity-0 group-hover/col:opacity-100 transition-opacity"
-            aria-label="Drag column"
+            className="hover:text-fg1 transition-colors"
+            aria-label="Drag to reorder column"
+            title="Drag to reorder"
             style={{
               background: "transparent",
               border: 0,
               padding: 0,
               cursor: "grab",
-              color: "var(--fg3)",
+              color: "var(--fg2)",
               display: "grid",
               placeItems: "center",
             }}
             {...dragHandleProps}
           >
-            <GripVertical size={12} strokeWidth={1.5} />
+            <GripVertical size={14} strokeWidth={1.5} />
           </button>
         )}
         <span
@@ -177,6 +178,14 @@ export function ColumnHeader({
               </div>
 
               <DropdownMenu.Separator className="dm-separator" />
+
+              <DropdownMenu.Item
+                className="dm-item"
+                onSelect={() => setEditing(true)}
+              >
+                <Pencil size={14} strokeWidth={1.5} />
+                Rename column
+              </DropdownMenu.Item>
 
               <DropdownMenu.Item
                 className="dm-item"

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,43 @@ from app.models.topic import Topic
 from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 
 router = APIRouter(tags=["tasks"])
+
+
+@router.get("/tasks", response_model=list[TaskResponse])
+async def list_all_tasks(
+    completed_since: date | None = Query(None, description="Only tasks with completed_at >= this date"),
+    due_before: date | None = Query(None, description="Only tasks with due_date <= this date"),
+    only_open: bool = Query(False, description="Exclude tasks already completed"),
+    order_by: str = Query("updated_at", description="updated_at | due_date | completed_at | created_at"),
+    limit: int = Query(50, ge=1, le=500),
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Cross-topic task list for the current user. Used by dashboard widgets."""
+    stmt = select(Task).where(Task.user_id == user_id)
+    if completed_since is not None:
+        stmt = stmt.where(Task.completed_at >= datetime.combine(completed_since, datetime.min.time(), tzinfo=timezone.utc))
+    if due_before is not None:
+        stmt = stmt.where(Task.due_date <= datetime.combine(due_before, datetime.max.time(), tzinfo=timezone.utc))
+    if only_open:
+        stmt = stmt.where(Task.completed_at.is_(None))
+
+    order_col = {
+        "updated_at": Task.updated_at,
+        "due_date": Task.due_date,
+        "completed_at": Task.completed_at,
+        "created_at": Task.created_at,
+    }.get(order_by, Task.updated_at)
+
+    # Newest-first for time-based fields; for due_date, ascending is more useful
+    if order_by == "due_date":
+        stmt = stmt.order_by(order_col.asc().nulls_last())
+    else:
+        stmt = stmt.order_by(order_col.desc().nulls_last())
+
+    stmt = stmt.limit(limit)
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
 
 async def _ensure_topic_owned(db: AsyncSession, topic_id: str, user_id: str) -> Topic:
