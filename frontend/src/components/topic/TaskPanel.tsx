@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { Trash2, X } from "lucide-react"
+import { ExternalLink, FileText, Trash2, X } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import type { KanbanColumn } from "@/api/topics"
 import {
   useDeleteTaskMutation,
+  usePromoteTaskMutation,
   useTopicTasksQuery,
   useUpdateTaskMutation,
   type Task,
@@ -52,7 +54,9 @@ function formatRelative(iso: string): string {
 export function TaskPanel({ task, columns, topicId, onClose }: Props) {
   const update = useUpdateTaskMutation(topicId)
   const del = useDeleteTaskMutation(topicId)
+  const promote = usePromoteTaskMutation(topicId)
   const tasksQuery = useTopicTasksQuery(topicId)
+  const navigate = useNavigate()
 
   // Local copies for text fields that we save on blur, so typing isn't laggy.
   const [title, setTitle] = useState(task.title)
@@ -94,6 +98,23 @@ export function TaskPanel({ task, columns, topicId, onClose }: Props) {
     if (!window.confirm("Delete this task?")) return
     await del.mutateAsync(task.id)
     onClose()
+  }
+
+  const handleOpenAsPage = async () => {
+    if (task.linked_topic_id) {
+      navigate(`/topics/${task.linked_topic_id}`)
+      onClose()
+      return
+    }
+    try {
+      const updated = await promote.mutateAsync(task.id)
+      if (updated.linked_topic_id) {
+        navigate(`/topics/${updated.linked_topic_id}`)
+        onClose()
+      }
+    } catch {
+      window.alert("Could not promote task to a page.")
+    }
   }
 
   const sortedColumns = [...columns].sort((a, b) => a.position - b.position)
@@ -292,6 +313,30 @@ export function TaskPanel({ task, columns, topicId, onClose }: Props) {
           >
             <Trash2 size={14} strokeWidth={1.5} />
             Delete
+          </button>
+          <div className="ml-auto" />
+          <button
+            type="button"
+            className="btn"
+            onClick={handleOpenAsPage}
+            disabled={promote.isPending}
+            title={
+              task.linked_topic_id
+                ? "Open the linked sub-topic page"
+                : "Create a sub-topic page for this task"
+            }
+          >
+            {task.linked_topic_id ? (
+              <>
+                <ExternalLink size={14} strokeWidth={1.5} />
+                Open page
+              </>
+            ) : (
+              <>
+                <FileText size={14} strokeWidth={1.5} />
+                {promote.isPending ? "Creating…" : "Open as page"}
+              </>
+            )}
           </button>
         </footer>
       </aside>

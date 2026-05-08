@@ -40,6 +40,7 @@ class TaskResponse(BaseModel):
     user_id: str
     column_id: str
     parent_task_id: str | None = None
+    linked_topic_id: str | None = None
     title: str
     description: str | None = None
     priority: TaskPriority

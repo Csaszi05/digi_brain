@@ -20,6 +20,7 @@ class Task(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     column_id: Mapped[str] = mapped_column(ForeignKey("kanban_columns.id", ondelete="CASCADE"), nullable=False, index=True)
     parent_task_id: Mapped[str | None] = mapped_column(ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True)
+    linked_topic_id: Mapped[str | None] = mapped_column(ForeignKey("topics.id", ondelete="SET NULL"), nullable=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     priority: Mapped[TaskPriority] = mapped_column(SAEnum(TaskPriority, name="task_priority"), nullable=False, default=TaskPriority.medium)
@@ -33,6 +34,8 @@ class Task(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    topic: Mapped["Topic"] = relationship("Topic", back_populates="tasks")
+    topic: Mapped["Topic"] = relationship(
+        "Topic", back_populates="tasks", foreign_keys="Task.topic_id"
+    )
     user: Mapped["User"] = relationship("User", back_populates="tasks")
     column: Mapped["KanbanColumn"] = relationship("KanbanColumn", back_populates="tasks")

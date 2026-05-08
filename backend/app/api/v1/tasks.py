@@ -178,3 +178,56 @@ async def delete_task(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     await db.delete(task)
     await db.commit()
+
+
+@router.post("/tasks/{task_id}/promote", response_model=TaskResponse)
+async def promote_task_to_page(
+    task_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a dedicated sub-topic linked to this task — gives the task its own page
+    with kanban columns. Idempotent: re-running on an already-linked task returns it as-is."""
+    task = await db.get(Task, task_id)
+    if task is None or task.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    if task.linked_topic_id:
+        return task
+
+    # Position among siblings under the parent topic
+    pos_stmt = select(func.coalesce(func.max(Topic.position), -1) + 1).where(
+        Topic.user_id == user_id,
+        Topic.parent_id == task.topic_id,
+    )
+    next_position = (await db.execute(pos_stmt)).scalar() or 0
+
+    new_topic = Topic(
+        user_id=user_id,
+        parent_id=task.topic_id,
+        name=task.title,
+        position=next_position,
+    )
+    db.add(new_topic)
+    await db.flush()
+
+    # Default kanban columns for the new sub-topic
+    default_columns = [
+        {"name": "To Do", "position": 0, "is_done_column": False},
+        {"name": "In Progress", "position": 1, "is_done_column": False},
+        {"name": "Done", "position": 2, "is_done_column": True},
+    ]
+    for col_def in default_columns:
+        db.add(
+            KanbanColumn(
+                topic_id=new_topic.id,
+                name=col_def["name"],
+                position=col_def["position"],
+                is_done_column=col_def["is_done_column"],
+            )
+        )
+
+    task.linked_topic_id = new_topic.id
+    await db.commit()
+    await db.refresh(task)
+    return task

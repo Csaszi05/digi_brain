@@ -22,5 +22,12 @@ class Topic(Base):
     parent: Mapped["Topic | None"] = relationship("Topic", remote_side="Topic.id", back_populates="children")
     children: Mapped[list["Topic"]] = relationship("Topic", back_populates="parent", cascade="all, delete-orphan")
     kanban_columns: Mapped[list["KanbanColumn"]] = relationship("KanbanColumn", back_populates="topic", cascade="all, delete-orphan")
-    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="topic", cascade="all, delete-orphan")
+    # Disambiguate: there are two FKs to topics on tasks (topic_id, linked_topic_id).
+    # Topic.tasks should only follow the "owner" FK (topic_id).
+    tasks: Mapped[list["Task"]] = relationship(
+        "Task",
+        back_populates="topic",
+        foreign_keys="Task.topic_id",
+        cascade="all, delete-orphan",
+    )
     notes: Mapped[list["Note"]] = relationship("Note", back_populates="topic", cascade="all, delete-orphan")

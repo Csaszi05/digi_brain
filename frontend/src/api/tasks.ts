@@ -9,6 +9,7 @@ export type Task = {
   user_id: string
   column_id: string
   parent_task_id: string | null
+  linked_topic_id: string | null
   title: string
   description: string | null
   priority: TaskPriority
@@ -112,6 +113,22 @@ export function useUpdateTaskMutation(topicId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEYS.byTopic(topicId) })
+    },
+  })
+}
+
+/** Promote a task to a sub-topic page. Idempotent on the backend. */
+export function usePromoteTaskMutation(topicId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post<Task>(`/tasks/${id}/promote`)
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.byTopic(topicId) })
+      // The new sub-topic appears under the parent — refresh the topic tree.
+      qc.invalidateQueries({ queryKey: ["topics"] })
     },
   })
 }
