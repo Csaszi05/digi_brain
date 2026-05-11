@@ -9,6 +9,7 @@ from app.models.task import Task
 from app.models.time_entry import TimeEntry
 from app.models.topic import Topic
 from app.schemas.time_entry import (
+    TimeEntryManualCreate,
     TimeEntryResponse,
     TimeEntryStart,
     TimeEntryUpdate,
@@ -43,6 +44,40 @@ async def _get_active_entry(db: AsyncSession, user_id: str) -> TimeEntry | None:
         TimeEntry.user_id == user_id, TimeEntry.ended_at.is_(None)
     )
     return (await db.execute(stmt)).scalar_one_or_none()
+
+
+@router.post(
+    "/entries",
+    response_model=TimeEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_manual_entry(
+    payload: TimeEntryManualCreate,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a manual (past) time entry with explicit start and end times."""
+    await _ensure_topic_owned(db, payload.topic_id, user_id)
+    if payload.task_id:
+        task = await db.get(Task, payload.task_id)
+        if task is None or task.user_id != user_id or task.topic_id != payload.topic_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found in this topic",
+            )
+
+    entry = TimeEntry(
+        user_id=user_id,
+        topic_id=payload.topic_id,
+        task_id=payload.task_id,
+        started_at=payload.started_at,
+        ended_at=payload.ended_at,
+        note=payload.note,
+    )
+    db.add(entry)
+    await db.commit()
+    await db.refresh(entry)
+    return entry
 
 
 @router.get("/active", response_model=TimeEntryResponse | None)

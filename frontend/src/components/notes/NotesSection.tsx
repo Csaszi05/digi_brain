@@ -1,9 +1,10 @@
 import { Plus } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { useTopicNotesQuery, useCreateNoteMutation, type Note } from "@/api/notes"
 
 type Props = {
   topicId: string
-  onOpenNote: (note: Note) => void
+  onOpenNote?: (note: Note) => void
 }
 
 function formatRelative(iso: string): string {
@@ -32,6 +33,7 @@ function snippet(content: string): string {
 export function NotesSection({ topicId, onOpenNote }: Props) {
   const notesQuery = useTopicNotesQuery(topicId)
   const create = useCreateNoteMutation(topicId)
+  const navigate = useNavigate()
 
   const handleNew = async () => {
     const note = await create.mutateAsync({
@@ -39,7 +41,13 @@ export function NotesSection({ topicId, onOpenNote }: Props) {
       content: "",
       topic_id: topicId,
     })
-    onOpenNote(note)
+    navigate(`/notes/${note.id}`)
+    onOpenNote?.(note)
+  }
+
+  const handleOpen = (note: Note) => {
+    navigate(`/notes/${note.id}`)
+    onOpenNote?.(note)
   }
 
   const notes = notesQuery.data ?? []
@@ -62,7 +70,7 @@ export function NotesSection({ topicId, onOpenNote }: Props) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {notes.map((n) => (
-          <div key={n.id} className="note-card" onClick={() => onOpenNote(n)}>
+          <div key={n.id} className="note-card" onClick={() => handleOpen(n)}>
             <div className="note-card-title">{n.title}</div>
             {n.content.trim() && (
               <div className="note-card-snippet">{snippet(n.content)}</div>

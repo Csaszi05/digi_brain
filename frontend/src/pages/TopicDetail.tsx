@@ -11,7 +11,6 @@ import {
 } from "lucide-react"
 import { useTopicQuery } from "@/api/topics"
 import { useTopicTasksQuery, type Task } from "@/api/tasks"
-import type { Note } from "@/api/notes"
 import { KanbanBoard } from "@/components/topic/KanbanBoard"
 import { TaskPanel } from "@/components/topic/TaskPanel"
 import { TopicHeader } from "@/components/topic/TopicHeader"
@@ -21,7 +20,6 @@ import { RoadmapView } from "@/components/topic/RoadmapView"
 import { ListView } from "@/components/topic/ListView"
 import { DiagramView } from "@/components/topic/DiagramView"
 import { NotesSection } from "@/components/notes/NotesSection"
-import { NoteEditor } from "@/components/notes/NoteEditor"
 
 type ViewMode = "kanban" | "list" | "pipeline" | "tree" | "roadmap" | "diagram"
 
@@ -39,7 +37,6 @@ export default function TopicDetail() {
   const [view, setView] = useState<ViewMode>("kanban")
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [addingForColumn, setAddingForColumn] = useState<string | null>(null)
-  const [openNote, setOpenNote] = useState<Note | null>(null)
   const topicQuery = useTopicQuery(id)
   const tasksQuery = useTopicTasksQuery(id)
 
@@ -146,7 +143,7 @@ export default function TopicDetail() {
         />
       )}
 
-      <NotesSection topicId={topic.id} onOpenNote={setOpenNote} />
+      <NotesSection topicId={topic.id} />
 
       {selectedTaskId && (() => {
         const selected = tasksQuery.data?.find((t) => t.id === selectedTaskId)
@@ -161,9 +158,6 @@ export default function TopicDetail() {
         )
       })()}
 
-      {openNote && (
-        <NoteEditor note={openNote} onClose={() => setOpenNote(null)} />
-      )}
     </div>
   )
 }

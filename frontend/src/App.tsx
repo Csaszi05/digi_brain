@@ -3,6 +3,7 @@ import { RootLayout } from "@/components/layout/RootLayout"
 import Dashboard from "@/pages/Dashboard"
 import TopicDetail from "@/pages/TopicDetail"
 import NotesPage from "@/pages/NotesPage"
+import NotePage from "@/pages/NotePage"
 import TimePage from "@/pages/TimePage"
 import FinancePage from "@/pages/FinancePage"
 
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/time" element={<TimePage />} />
         <Route path="/finance" element={<FinancePage />} />
         <Route path="/notes" element={<NotesPage />} />
+        <Route path="/notes/:id" element={<NotePage />} />
         <Route path="/vault" element={<Placeholder title="Vault" />} />
       </Route>
       <Route path="/login" element={<Placeholder title="Login" />} />

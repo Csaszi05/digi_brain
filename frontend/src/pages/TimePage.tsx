@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Trash2 } from "lucide-react"
+import { Plus, Trash2, X } from "lucide-react"
 import {
   useActiveTimerQuery,
   useDeleteTimeEntryMutation,
@@ -7,6 +7,7 @@ import {
   type TimeEntry,
 } from "@/api/time"
 import { useTopicsQuery, type Topic } from "@/api/topics"
+import { ManualTimeEntryForm } from "@/components/time/ManualTimeEntryForm"
 
 type Period = "today" | "week" | "month" | "year"
 
@@ -86,6 +87,7 @@ function formatStarted(iso: string): string {
 
 export default function TimePage() {
   const [period, setPeriod] = useState<Period>("week")
+  const [showManualForm, setShowManualForm] = useState(false)
   const range = useMemo(() => periodRange(period), [period])
   const sinceIso = range.since.toISOString()
 
@@ -155,7 +157,22 @@ export default function TimePage() {
             )}
           </div>
         </div>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => setShowManualForm((v) => !v)}
+        >
+          {showManualForm ? (
+            <><X size={14} strokeWidth={1.5} /> Cancel</>
+          ) : (
+            <><Plus size={14} strokeWidth={1.5} /> Add manual entry</>
+          )}
+        </button>
       </div>
+
+      {showManualForm && (
+        <ManualTimeEntryForm onClose={() => setShowManualForm(false)} />
+      )}
 
       <div className="tabs">
         {PERIOD_TABS.map((p) => (

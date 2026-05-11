@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Plus, Search } from "lucide-react"
 import {
   useAllNotesQuery,
   useCreateNoteMutation,
-  type Note,
 } from "@/api/notes"
 import { useTopicsQuery } from "@/api/topics"
-import { NoteEditor } from "@/components/notes/NoteEditor"
 
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime()
@@ -33,7 +32,7 @@ function snippet(content: string): string {
 export default function NotesPage() {
   const [filterTopicId, setFilterTopicId] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [openNote, setOpenNote] = useState<Note | null>(null)
+  const navigate = useNavigate()
 
   const notesQuery = useAllNotesQuery(filterTopicId)
   const topicsQuery = useTopicsQuery()
@@ -62,7 +61,7 @@ export default function NotesPage() {
       content: "",
       topic_id: filterTopicId,
     })
-    setOpenNote(note)
+    navigate(`/notes/${note.id}`)
   }
 
   return (
@@ -152,7 +151,7 @@ export default function NotesPage() {
         {filtered.map((n) => {
           const topic = n.topic_id ? topicById.get(n.topic_id) : null
           return (
-            <div key={n.id} className="note-card" onClick={() => setOpenNote(n)}>
+            <div key={n.id} className="note-card" onClick={() => navigate(`/notes/${n.id}`)}>
               {topic && (
                 <div className="flex items-center gap-2">
                   <span
@@ -181,9 +180,6 @@ export default function NotesPage() {
         })}
       </div>
 
-      {openNote && (
-        <NoteEditor note={openNote} onClose={() => setOpenNote(null)} />
-      )}
     </div>
   )
 }

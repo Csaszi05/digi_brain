@@ -102,6 +102,25 @@ export function useUpdateTimeEntryMutation() {
   })
 }
 
+export type TimeEntryManualCreate = {
+  topic_id: string
+  task_id?: string | null
+  started_at: string  // ISO
+  ended_at: string    // ISO
+  note?: string | null
+}
+
+export function useCreateManualEntryMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: TimeEntryManualCreate) => {
+      const { data } = await api.post<TimeEntry>("/time/entries", payload)
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
+  })
+}
+
 export function useDeleteTimeEntryMutation() {
   const qc = useQueryClient()
   return useMutation({
