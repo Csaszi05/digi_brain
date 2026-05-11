@@ -44,3 +44,16 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class UpdateProfileRequest(BaseModel):
+    current_password: str
+    new_email: str | None = None
+    new_password: str | None = Field(default=None, min_length=8, max_length=128)
+
+    @field_validator("new_email")
+    @classmethod
+    def validate_new_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        return _check_email(v)

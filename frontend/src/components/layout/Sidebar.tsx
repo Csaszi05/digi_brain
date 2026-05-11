@@ -19,6 +19,7 @@ import { useAuthStore } from "@/stores/authStore"
 import { useTopicsQuery } from "@/api/topics"
 import { buildTopicTree, type TopicNode } from "./topicTree"
 import { NewTopicForm } from "./NewTopicForm"
+import { ProfilePanel } from "@/components/auth/ProfilePanel"
 
 type NavItem = {
   id: string
@@ -152,6 +153,7 @@ export function Sidebar() {
 
   const { user, logout } = useAuthStore()
   const initials = user?.email ? user.email[0].toUpperCase() : "?"
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -166,6 +168,7 @@ export function Sidebar() {
   const [newChildOpenForId, setNewChildOpenForId] = useState<string | null>(null)
 
   return (
+    <>
     <aside className="sb" data-collapsed={collapsed ? "true" : "false"}>
       <div className="sb-header">
         <div className="sb-brand">
@@ -260,13 +263,19 @@ export function Sidebar() {
       </div>
 
       <div className="sb-footer">
-        <div className="sb-footer-user">
+        <button
+          type="button"
+          className="sb-footer-user"
+          onClick={() => setProfileOpen(true)}
+          title="Edit profile"
+          style={{ background: "transparent", border: 0, cursor: "pointer", textAlign: "left", padding: 0 }}
+        >
           <div className="sb-avatar">{initials}</div>
           <div className="sb-user-meta">
             <div className="sb-user-name truncate">{user?.email?.split("@")[0] ?? "User"}</div>
             <div className="sb-user-email truncate">{user?.email ?? ""}</div>
           </div>
-        </div>
+        </button>
         <div className="sb-footer-actions">
           <button
             type="button"
@@ -293,5 +302,8 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+
+    {profileOpen && <ProfilePanel onClose={() => setProfileOpen(false)} />}
+    </>
   )
 }
