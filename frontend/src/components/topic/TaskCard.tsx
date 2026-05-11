@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ChevronRight, FileText, Lock, Plus } from "lucide-react"
+import { ChevronRight, FileText, Lock, Pencil, Plus } from "lucide-react"
 import {
   useTopicTasksQuery,
   type Task,
@@ -10,6 +10,7 @@ import {
 import { useTopicQuery } from "@/api/topics"
 import type { BlockingState } from "@/lib/blockingState"
 import type { KanbanColumn } from "@/api/topics"
+import { computeTaskProgress, progressColor } from "@/lib/taskProgress"
 import { AddTaskInline } from "./AddTaskInline"
 
 const PRIORITY_DOT_CLASS: Record<Task["priority"], string> = {
@@ -38,7 +39,10 @@ type Props = {
   task: Task
   /** When true (e.g. inside DragOverlay), skip the sortable hook and render plain. */
   asOverlay?: boolean
+  /** Default click: navigates if linked, opens panel if not. */
   onClick?: (task: Task) => void
+  /** Explicitly open the edit panel regardless of linked state. */
+  onEdit?: (task: Task) => void
   blocking?: BlockingState
   /** Direct sub-tasks (parent_task_id === task.id). Used when this task is NOT linked to a page. */
   children?: Task[]
@@ -52,6 +56,7 @@ export function TaskCard({
   task,
   asOverlay = false,
   onClick,
+  onEdit,
   blocking,
   children,
   columnsById,
@@ -72,12 +77,13 @@ export function TaskCard({
   const [expanded, setExpanded] = useState(false)
   const [addingSub, setAddingSub] = useState(false)
 
-  // For linked tasks, lazy-fetch the linked topic + its tasks when expanded.
+  // Fetch linked topic + tasks eagerly (not just on expand) so the progress bar
+  // can show without needing to expand the card first.
   const linkedTopicQuery = useTopicQuery(
-    isLinked && expanded ? task.linked_topic_id ?? undefined : undefined
+    isLinked ? task.linked_topic_id ?? undefined : undefined
   )
   const linkedTasksQuery = useTopicTasksQuery(
-    isLinked && expanded ? task.linked_topic_id ?? undefined : undefined
+    isLinked ? task.linked_topic_id ?? undefined : undefined
   )
 
   // Decide what counts as "children" for the expand: linked-page tasks if linked, else parent_task_id sub-tasks.
@@ -133,7 +139,7 @@ export function TaskCard({
     <div
       ref={asOverlay ? undefined : sortable.setNodeRef}
       style={style}
-      className="kb-card"
+      className="kb-card group/card"
       {...(asOverlay ? {} : sortable.attributes)}
       {...(asOverlay ? {} : sortable.listeners)}
       onClick={() => {
@@ -188,6 +194,9 @@ export function TaskCard({
             aria-label="Has a linked page"
           />
         )}
+        {task.icon && (
+          <span style={{ flexShrink: 0, fontSize: 14, lineHeight: 1 }}>{task.icon}</span>
+        )}
         <span className="flex-1 min-w-0">{task.title}</span>
       </div>
       {task.description && <div className="kb-card-desc">{task.description}</div>}
@@ -208,9 +217,24 @@ export function TaskCard({
             {due}
           </span>
         )}
-        {inTopicChildren && (
-          <span className="text-xs text-fg3 tabular-nums" title={`${children!.length} sub-tasks`}>
-            ⊞ {children!.length}
+        {(isLinked ? sortedLinkedTasks.length > 0 : inTopicChildren) && (
+          <span className="text-xs text-fg3 tabular-nums" title={`${isLinked ? sortedLinkedTasks.length : children!.length} sub-tasks`}>
+            ⊞ {isLinked ? sortedLinkedTasks.length : children!.length}
+          </span>
+        )}
+        {task.story_points !== null && task.story_points !== undefined && (
+          <span
+            className="text-xs tabular-nums"
+            style={{
+              padding: "1px 6px",
+              borderRadius: 4,
+              background: "var(--accent-soft)",
+              color: "var(--indigo-300)",
+              fontWeight: 500,
+            }}
+            title={`${task.story_points} story points`}
+          >
+            {task.story_points} sp
           </span>
         )}
         {blocking && (blocking.blockedByCount > 0 || blocking.blocksCount > 0) && (
@@ -226,7 +250,70 @@ export function TaskCard({
             )}
           </span>
         )}
+        {!asOverlay && onEdit && (
+          <button
+            type="button"
+            aria-label="Edit task"
+            title="Edit task details"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit(task)
+            }}
+            className="ml-auto opacity-0 group-hover/card:opacity-100 transition-opacity"
+            style={{
+              background: "transparent",
+              border: 0,
+              padding: 2,
+              cursor: "pointer",
+              color: "var(--fg3)",
+              display: "grid",
+              placeItems: "center",
+              borderRadius: 4,
+            }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--fg1)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--fg3)")}
+          >
+            <Pencil size={11} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
+
+      {/* Progress bar — from linked topic's tasks (if linked) or parent_task_id children */}
+      {(() => {
+        const progressTasks = isLinked ? sortedLinkedTasks : (children ?? [])
+        const progressCols = isLinked ? linkedColumnsById : (columnsById ?? new Map())
+        if (progressTasks.length === 0) return null
+        const progress = computeTaskProgress(progressTasks, progressCols)
+        if (!progress) return null
+        const color = progressColor(progress.pct)
+        const hasPoints = progressTasks.some(c => c.story_points !== null)
+        return (
+          <div className="mt-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-fg3">
+                {hasPoints
+                  ? `${progress.pointsDone} / ${progress.pointsTotal} sp`
+                  : `${progress.countDone} / ${progress.countTotal} done`}
+              </span>
+              <span
+                className="text-[11px] tabular-nums font-medium"
+                style={{ color }}
+              >
+                {progress.pct}%
+              </span>
+            </div>
+            <div
+              className="progress"
+              style={{ height: 4, background: "var(--bg-app)" }}
+            >
+              <div
+                className="progress-bar"
+                style={{ width: `${progress.pct}%`, background: color, transition: "width 300ms" }}
+              />
+            </div>
+          </div>
+        )
+      })()}
 
       {expanded && (
         <div

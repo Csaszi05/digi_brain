@@ -159,6 +159,21 @@ async def update_task(
     if "priority" in updates and updates["priority"] is not None:
         updates["priority"] = updates["priority"].value if hasattr(updates["priority"], "value") else updates["priority"]
 
+    if "linked_topic_id" in updates and updates["linked_topic_id"] is not None:
+        # Validate the linked topic belongs to this user
+        linked = await db.get(Topic, updates["linked_topic_id"])
+        if linked is None or linked.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Topic not found",
+            )
+        # Prevent linking a topic to a task that already lives inside it (trivial cycle)
+        if linked.id == task.topic_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot link a task to the topic it already belongs to",
+            )
+
     for key, value in updates.items():
         setattr(task, key, value)
 

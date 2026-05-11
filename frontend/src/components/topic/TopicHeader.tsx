@@ -7,6 +7,7 @@ import {
   useUpdateTopicMutation,
   type TopicWithColumns,
 } from "@/api/topics"
+import { EmojiPicker } from "@/components/ui/EmojiPicker"
 
 const PRESET_COLORS = [
   "#a78bfa",
@@ -36,16 +37,9 @@ export function TopicHeader({ topic, taskCount, rightSlot }: Props) {
   const titleInputRef = useRef<HTMLInputElement>(null)
   const titleSavedRef = useRef(false)
 
-  const [iconEditing, setIconEditing] = useState(false)
-  const [iconDraft, setIconDraft] = useState(topic.icon ?? "")
-  const iconInputRef = useRef<HTMLInputElement>(null)
-  const iconSavedRef = useRef(false)
-
-  // When the underlying topic changes (e.g. after a save / refetch), resync drafts.
   useEffect(() => {
     setTitleDraft(topic.name)
-    setIconDraft(topic.icon ?? "")
-  }, [topic.id, topic.name, topic.icon])
+  }, [topic.id, topic.name])
 
   useEffect(() => {
     if (titleEditing) {
@@ -54,14 +48,6 @@ export function TopicHeader({ topic, taskCount, rightSlot }: Props) {
       titleInputRef.current?.select()
     }
   }, [titleEditing])
-
-  useEffect(() => {
-    if (iconEditing) {
-      iconSavedRef.current = false
-      iconInputRef.current?.focus()
-      iconInputRef.current?.select()
-    }
-  }, [iconEditing])
 
   const commitTitle = () => {
     if (titleSavedRef.current) return
@@ -74,19 +60,6 @@ export function TopicHeader({ topic, taskCount, rightSlot }: Props) {
     }
     update.mutate({ id: topic.id, name: trimmed })
     setTitleEditing(false)
-  }
-
-  const commitIcon = () => {
-    if (iconSavedRef.current) return
-    iconSavedRef.current = true
-    const trimmed = iconDraft.trim()
-    const next = trimmed || null
-    if (next === (topic.icon ?? null)) {
-      setIconEditing(false)
-      return
-    }
-    update.mutate({ id: topic.id, icon: next })
-    setIconEditing(false)
   }
 
   const handleArchive = async () => {
@@ -109,34 +82,20 @@ export function TopicHeader({ topic, taskCount, rightSlot }: Props) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        {iconEditing ? (
-          <input
-            ref={iconInputRef}
-            className="topic-icon-input"
-            value={iconDraft}
-            maxLength={4}
-            onChange={(e) => setIconDraft(e.target.value)}
-            onBlur={commitIcon}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitIcon()
-              if (e.key === "Escape") {
-                iconSavedRef.current = true
-                setIconDraft(topic.icon ?? "")
-                setIconEditing(false)
-              }
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-2xl"
-            style={{ background: "var(--bg-elev2)" }}
-            aria-label="Change icon"
-            onClick={() => setIconEditing(true)}
-          >
-            {topic.icon ?? "📁"}
-          </button>
-        )}
+        <EmojiPicker
+          value={topic.icon}
+          onChange={(emoji) => update.mutate({ id: topic.id, icon: emoji })}
+          trigger={
+            <button
+              type="button"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-2xl hover:bg-bg-hover"
+              style={{ background: "var(--bg-elev2)", border: 0, cursor: "pointer" }}
+              aria-label="Change icon"
+            >
+              {topic.icon ?? "📁"}
+            </button>
+          }
+        />
 
         <div className="min-w-0 flex-1">
           {titleEditing ? (

@@ -105,6 +105,7 @@ export default function TopicDetail() {
           topicId={topic.id}
           columns={topic.kanban_columns}
           onTaskClick={(t: Task) => setSelectedTaskId(t.id)}
+          onTaskEdit={(t: Task) => setSelectedTaskId(t.id)}
           addingForColumn={addingForColumn}
           onAddingForColumnChange={setAddingForColumn}
         />

@@ -119,6 +119,8 @@ type Props = {
   topicId: string
   columns: KanbanColumn[]
   onTaskClick?: (task: Task) => void
+  /** Always opens the TaskPanel regardless of linked state. */
+  onTaskEdit?: (task: Task) => void
   /** Controlled adding-state. If provided, parent owns it (so external triggers like a header button can drive it). */
   addingForColumn?: string | null
   onAddingForColumnChange?: (id: string | null) => void
@@ -128,6 +130,7 @@ export function KanbanBoard({
   topicId,
   columns,
   onTaskClick,
+  onTaskEdit,
   addingForColumn: addingForColumnProp,
   onAddingForColumnChange,
 }: Props) {
@@ -341,6 +344,7 @@ export function KanbanBoard({
                               key={t.id}
                               task={t}
                               onClick={onTaskClick}
+                              onEdit={onTaskEdit}
                               blocking={computeBlockingState(
                                 t.id,
                                 linksQuery.data ?? [],

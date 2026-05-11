@@ -3,6 +3,9 @@ import { api } from "@/lib/api"
 
 export type TaskPriority = "low" | "medium" | "high"
 
+export const FIBONACCI_POINTS = [1, 2, 3, 5, 8, 13, 21] as const
+export type FibonacciPoint = typeof FIBONACCI_POINTS[number]
+
 export type Task = {
   id: string
   topic_id: string
@@ -10,6 +13,8 @@ export type Task = {
   column_id: string
   parent_task_id: string | null
   linked_topic_id: string | null
+  story_points: number | null
+  icon: string | null
   title: string
   description: string | null
   priority: TaskPriority
@@ -30,6 +35,8 @@ export type TaskCreate = {
   column_id: string
   priority?: TaskPriority
   parent_task_id?: string | null
+  icon?: string | null
+  story_points?: number | null
   start_date?: string | null
   end_date?: string | null
   due_date?: string | null
@@ -41,6 +48,9 @@ export type TaskUpdate = Partial<{
   column_id: string
   priority: TaskPriority
   parent_task_id: string | null
+  linked_topic_id: string | null
+  icon: string | null
+  story_points: number | null
   start_date: string | null
   end_date: string | null
   due_date: string | null

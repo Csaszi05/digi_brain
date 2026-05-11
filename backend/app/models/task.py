@@ -30,6 +30,8 @@ class Task(Base):
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     position_x: Mapped[int | None] = mapped_column(Integer, nullable=True)
     position_y: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    story_points: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    icon: Mapped[str | None] = mapped_column(String(50), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
