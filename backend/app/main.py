@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from app.api.deps import DEV_USER_ID
+from app.api.v1 import auth as auth_router
 from app.api.v1 import columns as columns_router
 from app.api.v1 import dashboard as dashboard_router
 from app.api.v1 import finance as finance_router
@@ -19,6 +20,7 @@ from app.models.user import User
 
 
 async def ensure_dev_user() -> None:
+    """Seed the well-known dev user so local dev works without registering."""
     async with AsyncSessionLocal() as db:
         existing = (
             await db.execute(select(User).where(User.id == DEV_USER_ID))
@@ -62,6 +64,9 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
+
+# Auth — no prefix on the router itself, it handles /auth/* internally
+app.include_router(auth_router.router, prefix="/api/v1")
 
 app.include_router(topics_router.router, prefix="/api/v1")
 app.include_router(tasks_router.router, prefix="/api/v1")

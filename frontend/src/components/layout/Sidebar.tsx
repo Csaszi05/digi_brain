@@ -9,12 +9,13 @@ import {
   Wallet,
   FileText,
   Lock,
-  Settings,
+  LogOut,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
 import { useUIStore } from "@/stores/uiStore"
+import { useAuthStore } from "@/stores/authStore"
 import { useTopicsQuery } from "@/api/topics"
 import { buildTopicTree, type TopicNode } from "./topicTree"
 import { NewTopicForm } from "./NewTopicForm"
@@ -146,7 +147,16 @@ export function Sidebar() {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const openCmdk = useUIStore((s) => s.openCmdk)
   const location = useLocation()
+  const navigate = useNavigate()
   const activeTopicId = activeTopicIdFromPath(location.pathname)
+
+  const { user, logout } = useAuthStore()
+  const initials = user?.email ? user.email[0].toUpperCase() : "?"
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login", { replace: true })
+  }
 
   const topics = useTopicsQuery()
   const tree = topics.data ? buildTopicTree(topics.data) : []
@@ -251,15 +261,21 @@ export function Sidebar() {
 
       <div className="sb-footer">
         <div className="sb-footer-user">
-          <div className="sb-avatar">M</div>
+          <div className="sb-avatar">{initials}</div>
           <div className="sb-user-meta">
-            <div className="sb-user-name">Marcell</div>
-            <div className="sb-user-email">marcell@digibrain.local</div>
+            <div className="sb-user-name truncate">{user?.email?.split("@")[0] ?? "User"}</div>
+            <div className="sb-user-email truncate">{user?.email ?? ""}</div>
           </div>
         </div>
         <div className="sb-footer-actions">
-          <button type="button" className="sb-icon-btn" aria-label="Settings">
-            <Settings size={14} strokeWidth={1.5} />
+          <button
+            type="button"
+            className="sb-icon-btn"
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={handleLogout}
+          >
+            <LogOut size={14} strokeWidth={1.5} />
           </button>
           <button type="button" className="sb-icon-btn" aria-label="Toggle theme">
             <Moon size={14} strokeWidth={1.5} />
