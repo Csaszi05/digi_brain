@@ -12,6 +12,7 @@ from app.api.v1 import notes as notes_router
 from app.api.v1 import task_links as task_links_router
 from app.api.v1 import tasks as tasks_router
 from app.api.v1 import time as time_router
+from app.api.v1 import email_accounts as email_accounts_router
 from app.api.v1 import inbox_rules as inbox_rules_router
 from app.api.v1 import tickets as tickets_router
 from app.api.v1 import topics as topics_router
@@ -19,6 +20,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.user import User
+from app.workers.poller import start_scheduler, stop_scheduler
 
 
 async def ensure_dev_user() -> None:
@@ -43,7 +45,9 @@ async def ensure_dev_user() -> None:
 async def lifespan(app: FastAPI):
     if settings.ENVIRONMENT != "production":
         await ensure_dev_user()
+    start_scheduler()
     yield
+    stop_scheduler()
 
 
 app = FastAPI(
@@ -80,3 +84,4 @@ app.include_router(finance_router.router, prefix="/api/v1")
 app.include_router(dashboard_router.router, prefix="/api/v1")
 app.include_router(tickets_router.router, prefix="/api/v1")
 app.include_router(inbox_rules_router.router, prefix="/api/v1")
+app.include_router(email_accounts_router.router, prefix="/api/v1")

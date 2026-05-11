@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
     NOTES_SYNC_PATH: str = "/app/notes"
+    FERNET_KEY: str = ""  # generated once: Fernet.generate_key().decode()
+    IMAP_POLL_INTERVAL_MINUTES: int = 2
 
     class Config:
         env_file = ".env"

@@ -10,6 +10,7 @@ import TimePage from "@/pages/TimePage"
 import FinancePage from "@/pages/FinancePage"
 import InboxPage from "@/pages/InboxPage"
 import InboxRulesPage from "@/pages/InboxRulesPage"
+import InboxSettingsPage from "@/pages/InboxSettingsPage"
 
 /**
  * Wraps all protected routes. Redirects to /login when there is no valid
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="/vault" element={<Placeholder title="Vault" />} />
           <Route path="/inbox" element={<InboxPage />} />
           <Route path="/inbox/rules" element={<InboxRulesPage />} />
+          <Route path="/inbox/settings" element={<InboxSettingsPage />} />
         </Route>
       </Route>
 
