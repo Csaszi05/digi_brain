@@ -6,6 +6,7 @@ from app.models.task_link import TaskLink, LinkType
 from app.models.note import Note
 from app.models.time_entry import TimeEntry
 from app.models.finance import Category, Transaction, Budget, TransactionKind, BudgetPeriod
+from app.models.inbox import EmailAccount, Ticket, TicketMessage, InboxRule, TicketActivity
 
 __all__ = [
     "User",
@@ -21,4 +22,9 @@ __all__ = [
     "Budget",
     "TransactionKind",
     "BudgetPeriod",
+    "EmailAccount",
+    "Ticket",
+    "TicketMessage",
+    "InboxRule",
+    "TicketActivity",
 ]

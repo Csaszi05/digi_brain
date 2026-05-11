@@ -8,6 +8,8 @@ import NotesPage from "@/pages/NotesPage"
 import NotePage from "@/pages/NotePage"
 import TimePage from "@/pages/TimePage"
 import FinancePage from "@/pages/FinancePage"
+import InboxPage from "@/pages/InboxPage"
+import InboxRulesPage from "@/pages/InboxRulesPage"
 
 /**
  * Wraps all protected routes. Redirects to /login when there is no valid
@@ -55,6 +57,8 @@ export default function App() {
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/vault" element={<Placeholder title="Vault" />} />
+          <Route path="/inbox" element={<InboxPage />} />
+          <Route path="/inbox/rules" element={<InboxRulesPage />} />
         </Route>
       </Route>
 

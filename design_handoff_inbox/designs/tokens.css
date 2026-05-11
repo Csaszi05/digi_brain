@@ -1,0 +1,271 @@
+/* DigiBrain Design Tokens
+   Dark-first, zinc/indigo, Inter + JetBrains Mono.
+   Use the semantic vars (--fg1, --bg-elev1, --text-h1, etc) in components.
+   Use the raw scale (--zinc-900, --indigo-500) only when defining new tokens. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/Inter-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/Inter-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/Inter-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("./fonts/Inter-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./fonts/JetBrainsMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ─── Raw scale: zinc neutrals ─────────────────────────────── */
+  --zinc-50:  #fafafa;
+  --zinc-100: #f4f4f5;
+  --zinc-200: #e4e4e7;
+  --zinc-300: #d4d4d8;
+  --zinc-400: #a1a1aa;
+  --zinc-500: #71717a;
+  --zinc-600: #52525b;
+  --zinc-700: #3f3f46;
+  --zinc-800: #27272a;
+  --zinc-900: #18181b;
+  --zinc-950: #09090b;
+
+  /* ─── Raw scale: indigo (single accent) ────────────────────── */
+  --indigo-300: #a5b4fc;
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+
+  /* ─── Raw scale: status (muted) ────────────────────────────── */
+  --emerald-400: #34d399;
+  --amber-400:   #fbbf24;
+  --rose-400:    #fb7185;
+
+  /* ─── Type families ────────────────────────────────────────── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ─── Type scale ───────────────────────────────────────────── */
+  --text-12: 0.75rem;     /* 12px — micro labels */
+  --text-13: 0.8125rem;   /* 13px — sidebar items, captions */
+  --text-14: 0.875rem;    /* 14px — body */
+  --text-16: 1rem;        /* 16px — card title */
+  --text-18: 1.125rem;    /* 18px */
+  --text-20: 1.25rem;     /* 20px — section title */
+  --text-24: 1.5rem;      /* 24px — page title */
+  --text-30: 1.875rem;    /* 30px — large stat */
+  --text-36: 2.25rem;     /* 36px — display */
+
+  /* ─── Line heights ─────────────────────────────────────────── */
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+
+  /* ─── Tracking ─────────────────────────────────────────────── */
+  --tracking-display: -0.015em;
+  --tracking-tight:   -0.01em;
+  --tracking-normal:  0;
+  --tracking-mini:    0.04em;   /* uppercase mini-labels */
+
+  /* ─── Spacing (4px grid) ───────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ─── Radii ────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ─── Shadows (dark) ───────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.40);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.45), 0 1px 2px -1px rgb(0 0 0 / 0.35);
+  --shadow-md: 0 8px 24px -8px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.40);
+
+  /* ─── Layout sizes ─────────────────────────────────────────── */
+  --sidebar-w: 260px;
+  --sidebar-w-collapsed: 64px;
+  --topbar-h: 56px;
+
+  /* ─── Motion ───────────────────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 240ms;
+
+  /* ─── Semantic tokens (DARK, default) ──────────────────────── */
+  --bg-app:    var(--zinc-950);
+  --bg-elev1:  var(--zinc-900);
+  --bg-elev2:  var(--zinc-800);
+  --bg-hover:  rgb(39 39 42 / 0.6);     /* zinc-800/60 */
+  --bg-active: var(--zinc-800);
+  --bg-overlay: rgb(9 9 11 / 0.7);
+
+  --fg1: var(--zinc-50);
+  --fg2: var(--zinc-400);
+  --fg3: var(--zinc-500);
+  --fg-disabled: var(--zinc-600);
+  --fg-on-accent: #ffffff;
+
+  --border:        var(--zinc-800);
+  --border-strong: var(--zinc-700);
+  --border-accent: var(--indigo-500);
+
+  --accent:       var(--indigo-500);
+  --accent-hover: var(--indigo-400);
+  --accent-press: var(--indigo-600);
+  --accent-soft:  rgb(99 102 241 / 0.12);   /* indigo-500/12 */
+
+  --success: var(--emerald-400);
+  --success-soft: rgb(52 211 153 / 0.12);
+  --warn:    var(--amber-400);
+  --warn-soft: rgb(251 191 36 / 0.12);
+  --danger:  var(--rose-400);
+  --danger-soft: rgb(251 113 133 / 0.12);
+
+  --focus-ring: var(--indigo-500);
+}
+
+/* Light mode — opt in via [data-theme="light"] on <html> or <body> */
+[data-theme="light"] {
+  --bg-app:    #ffffff;
+  --bg-elev1:  var(--zinc-50);
+  --bg-elev2:  var(--zinc-100);
+  --bg-hover:  rgb(244 244 245 / 0.7);
+  --bg-active: var(--zinc-100);
+  --bg-overlay: rgb(255 255 255 / 0.7);
+
+  --fg1: var(--zinc-900);
+  --fg2: var(--zinc-600);
+  --fg3: var(--zinc-500);
+  --fg-disabled: var(--zinc-400);
+
+  --border:        var(--zinc-200);
+  --border-strong: var(--zinc-300);
+
+  --accent-soft:  rgb(99 102 241 / 0.10);
+  --success-soft: rgb(52 211 153 / 0.12);
+  --warn-soft:    rgb(251 191 36 / 0.14);
+  --danger-soft:  rgb(251 113 133 / 0.12);
+
+  --shadow-xs: 0 1px 2px 0 rgb(9 9 11 / 0.06);
+  --shadow-sm: 0 1px 3px 0 rgb(9 9 11 / 0.10), 0 1px 2px -1px rgb(9 9 11 / 0.06);
+  --shadow-md: 0 8px 24px -8px rgb(9 9 11 / 0.18), 0 2px 6px -2px rgb(9 9 11 / 0.10);
+}
+
+/* ─── Semantic typography mixins ────────────────────────────── */
+:root {
+  --type-display: 600 var(--text-36)/var(--leading-tight) var(--font-sans);
+  --type-h1:      600 var(--text-24)/var(--leading-tight) var(--font-sans);
+  --type-h2:      600 var(--text-20)/var(--leading-snug) var(--font-sans);
+  --type-h3:      600 var(--text-16)/var(--leading-snug) var(--font-sans);
+  --type-body:    400 var(--text-14)/var(--leading-normal) var(--font-sans);
+  --type-body-md: 500 var(--text-14)/var(--leading-normal) var(--font-sans);
+  --type-small:   400 var(--text-13)/var(--leading-normal) var(--font-sans);
+  --type-mini:    500 var(--text-12)/var(--leading-snug) var(--font-sans);
+  --type-stat:    600 var(--text-30)/var(--leading-tight) var(--font-sans);
+  --type-mono:    400 var(--text-13)/var(--leading-normal) var(--font-mono);
+}
+
+/* ─── Reset / base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--fg1);
+  font: var(--type-body);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Numbers should always be tabular in dense UIs */
+.tabular, .num, [data-num] { font-variant-numeric: tabular-nums; }
+
+/* Semantic element bindings */
+h1 { font: var(--type-h1); letter-spacing: var(--tracking-display); margin: 0; }
+h2 { font: var(--type-h2); letter-spacing: var(--tracking-tight); margin: 0; }
+h3 { font: var(--type-h3); letter-spacing: var(--tracking-tight); margin: 0; }
+p  { font: var(--type-body); margin: 0; color: var(--fg2); }
+small { font: var(--type-small); color: var(--fg3); }
+code, pre, kbd { font: var(--type-mono); }
+kbd {
+  display: inline-flex; align-items: center;
+  padding: 2px 6px;
+  font-size: var(--text-12);
+  background: var(--bg-elev2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg2);
+}
+
+/* Mini all-caps label (used on stat cards) */
+.mini-label {
+  font: var(--type-mini);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-mini);
+  color: var(--fg3);
+}
+
+/* Focus ring — applied to anything interactive */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+/* Scrollbar (dark, slim) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--zinc-800);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--zinc-700); background-clip: content-box; }
