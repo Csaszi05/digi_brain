@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react"
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react"
 import { useTopicTasksQuery, type Task } from "@/api/tasks"
-import type { KanbanColumn } from "@/api/topics"
+import { useTopicsQuery, type KanbanColumn, type Topic } from "@/api/topics"
 
 type SortKey = "priority" | "title" | "column" | "due_date" | "updated_at"
 type SortDir = "asc" | "desc"
@@ -23,7 +24,6 @@ function compareNullable(
   b: string | number | null,
   asc: boolean
 ): number {
-  // Nulls sort to the end always; flipping asc/desc only affects values.
   if (a === null && b === null) return 0
   if (a === null) return 1
   if (b === null) return -1
@@ -31,18 +31,16 @@ function compareNullable(
   return (a < b ? -1 : 1) * (asc ? 1 : -1)
 }
 
-function formatRelative(iso: string | null): string {
-  if (!iso) return "—"
+function formatRelative(iso: string): string {
   const then = new Date(iso).getTime()
-  const now = Date.now()
-  const sec = Math.round((now - then) / 1000)
-  if (Math.abs(sec) < 60) return "just now"
+  const sec = Math.round((Date.now() - then) / 1000)
+  if (sec < 60) return "just now"
   const min = Math.round(sec / 60)
-  if (Math.abs(min) < 60) return `${min}m ago`
+  if (min < 60) return `${min}m ago`
   const hr = Math.round(min / 60)
-  if (Math.abs(hr) < 24) return `${hr}h ago`
+  if (hr < 24) return `${hr}h ago`
   const day = Math.round(hr / 24)
-  if (Math.abs(day) < 30) return `${day}d ago`
+  if (day < 30) return `${day}d ago`
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
@@ -68,11 +66,55 @@ type Props = {
   onTaskClick?: (task: Task) => void
 }
 
+/** Sub-topic row — navigates to the topic's own page. */
+function SubTopicRow({ topic }: { topic: Topic }) {
+  const navigate = useNavigate()
+  return (
+    <tr
+      onClick={() => navigate(`/topics/${topic.id}`)}
+      style={{ cursor: "pointer" }}
+      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--bg-hover)")}
+      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+    >
+      <td style={{ padding: "10px 14px" }}>
+        <span style={{ fontSize: 14 }}>{topic.icon ?? "📁"}</span>
+      </td>
+      <td colSpan={3} style={{ padding: "10px 8px" }}>
+        <div className="flex items-center gap-2">
+          {topic.color && (
+            <span
+              className="tag-dot shrink-0"
+              style={{ background: topic.color, width: 8, height: 8 }}
+            />
+          )}
+          <span className="text-13 font-semibold text-fg1">{topic.name}</span>
+          <span
+            className="tag"
+            style={{ height: 18, fontSize: 10, padding: "0 5px", marginLeft: 4 }}
+          >
+            topic
+          </span>
+        </div>
+      </td>
+      <td style={{ padding: "10px 8px", color: "var(--fg3)", fontSize: 12 }}>—</td>
+      <td style={{ padding: "10px 14px", textAlign: "right" }}>
+        <ChevronRight size={14} strokeWidth={1.5} style={{ color: "var(--fg3)" }} />
+      </td>
+    </tr>
+  )
+}
+
 export function ListView({ topicId, columns, onTaskClick }: Props) {
   const tasksQuery = useTopicTasksQuery(topicId)
+  const topicsQuery = useTopicsQuery()
   const [sortKey, setSortKey] = useState<SortKey>("updated_at")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [columnFilter, setColumnFilter] = useState<string>("")
+
+  const childTopics = useMemo(
+    () => (topicsQuery.data ?? []).filter((t) => t.parent_id === topicId && !t.archived),
+    [topicsQuery.data, topicId]
+  )
 
   const columnsById = useMemo(
     () => new Map(columns.map((c) => [c.id, c])),
@@ -116,12 +158,25 @@ export function ListView({ topicId, columns, onTaskClick }: Props) {
     }
   }
 
-  const SortableHeader = ({ k, label, align = "left" }: { k: SortKey; label: string; align?: "left" | "right" }) => (
+  const SortableHeader = ({
+    k,
+    label,
+    align = "left",
+  }: {
+    k: SortKey
+    label: string
+    align?: "left" | "right"
+  }) => (
     <button
       type="button"
       onClick={() => toggleSort(k)}
       className="inline-flex items-center gap-1 text-fg3 hover:text-fg1 transition-colors"
-      style={{ textAlign: align, justifyContent: align === "right" ? "flex-end" : "flex-start", width: "100%", font: "inherit" }}
+      style={{
+        textAlign: align,
+        justifyContent: align === "right" ? "flex-end" : "flex-start",
+        width: "100%",
+        font: "inherit",
+      }}
     >
       {label}
       {sortKey === k &&
@@ -133,16 +188,18 @@ export function ListView({ topicId, columns, onTaskClick }: Props) {
     </button>
   )
 
+  const isEmpty = childTopics.length === 0 && (tasksQuery.data ?? []).length === 0
+
   if (tasksQuery.isLoading) {
     return <div className="text-fg3 text-sm py-12 text-center">Loading…</div>
   }
-  if ((tasksQuery.data ?? []).length === 0) {
+  if (isEmpty) {
     return (
       <div
         className="grid place-items-center text-fg3 text-sm"
         style={{ padding: 48, border: "1px dashed var(--border)", borderRadius: 12 }}
       >
-        No tasks yet. Add some in the Kanban view.
+        No tasks or sub-topics yet.
       </div>
     )
   }
@@ -167,13 +224,12 @@ export function ListView({ topicId, columns, onTaskClick }: Props) {
             ))}
         </select>
         <span className="text-xs text-fg3 ml-auto tabular-nums">
-          {sorted.length} of {(tasksQuery.data ?? []).length}
+          {childTopics.length > 0 && `${childTopics.length} sub-topic${childTopics.length === 1 ? "" : "s"} · `}
+          {sorted.length} task{sorted.length === 1 ? "" : "s"}
         </span>
       </div>
 
-      <div
-        className="rounded-xl border border-border bg-bg-elev1 overflow-hidden"
-      >
+      <div className="rounded-xl border border-border bg-bg-elev1 overflow-hidden">
         <table className="w-full text-13 tabular-nums" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -196,35 +252,52 @@ export function ListView({ topicId, columns, onTaskClick }: Props) {
             </tr>
           </thead>
           <tbody>
+            {/* Sub-topics first */}
+            {childTopics.map((topic) => (
+              <SubTopicRow key={topic.id} topic={topic} />
+            ))}
+
+            {/* Tasks */}
             {sorted.map((t, i) => {
               const col = columnsById.get(t.column_id)
               const isDone = !!col?.is_done_column
               const stripeColor = col?.color ?? (isDone ? "#34d399" : "var(--accent)")
+              const isSubTask = !!t.parent_task_id
               return (
                 <tr
                   key={t.id}
                   onClick={() => onTaskClick?.(t)}
                   style={{
-                    borderBottom: i < sorted.length - 1 ? "1px solid var(--border)" : "0",
+                    borderBottom:
+                      i < sorted.length - 1 ? "1px solid var(--border)" : "0",
                     cursor: "pointer",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "var(--bg-hover)")
+                    ((e.currentTarget as HTMLElement).style.background = "var(--bg-hover)")
                   }
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLElement).style.background = "transparent")
+                  }
                 >
                   <td style={{ padding: "10px 14px" }}>
-                    <span
-                      className={`dot ${PRIORITY_DOT_CLASS[t.priority]}`}
-                      style={{ width: 8, height: 8 }}
-                    />
+                    {t.icon ? (
+                      <span style={{ fontSize: 14 }}>{t.icon}</span>
+                    ) : (
+                      <span
+                        className={`dot ${PRIORITY_DOT_CLASS[t.priority]}`}
+                        style={{ width: 8, height: 8 }}
+                      />
+                    )}
                   </td>
                   <td style={{ padding: "10px 8px", color: "var(--fg2)" }}>
                     {t.priority}
+                    {isSubTask && (
+                      <span className="text-[10px] text-fg3 ml-1">↳</span>
+                    )}
                   </td>
                   <td
                     style={{
-                      padding: "10px 8px",
+                      padding: isSubTask ? "10px 8px 10px 24px" : "10px 8px",
                       color: isDone ? "var(--fg3)" : "var(--fg1)",
                       textDecoration: isDone ? "line-through" : "none",
                       maxWidth: 0,
@@ -234,13 +307,18 @@ export function ListView({ topicId, columns, onTaskClick }: Props) {
                     }}
                   >
                     {t.title}
+                    {t.story_points !== null && t.story_points !== undefined && (
+                      <span
+                        className="ml-2 text-[10px]"
+                        style={{ color: "var(--indigo-300)" }}
+                      >
+                        {t.story_points}sp
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: "10px 8px" }}>
                     {col && (
-                      <span
-                        className="tag"
-                        style={{ height: 20, fontSize: 11 }}
-                      >
+                      <span className="tag" style={{ height: 20, fontSize: 11 }}>
                         <span
                           className="tag-dot"
                           style={{ background: stripeColor, width: 6, height: 6 }}

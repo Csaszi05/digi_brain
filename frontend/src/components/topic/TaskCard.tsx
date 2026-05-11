@@ -12,6 +12,7 @@ import type { BlockingState } from "@/lib/blockingState"
 import type { KanbanColumn } from "@/api/topics"
 import { computeTaskProgress, progressColor } from "@/lib/taskProgress"
 import { AddTaskInline } from "./AddTaskInline"
+import { ExpandableSubRow } from "./ExpandableSubRow"
 
 const PRIORITY_DOT_CLASS: Record<Task["priority"], string> = {
   high: "dot-high",
@@ -329,36 +330,16 @@ export function TaskCard({
               {!linkedTasksQuery.isLoading && sortedLinkedTasks.length === 0 && !addingSub && (
                 <div className="text-xs text-fg3 px-1.5 py-1">No tasks on this page yet.</div>
               )}
-              {sortedLinkedTasks.map((c) => {
-                const col = linkedColumnsById.get(c.column_id)
-                const isDone = !!col?.is_done_column
-                return (
-                  <div
-                    key={c.id}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/topics/${task.linked_topic_id}`)
-                    }}
-                    className="flex items-center gap-2 rounded-md px-1.5 py-1 cursor-pointer hover:bg-bg-hover"
-                    style={{
-                      fontSize: 12,
-                      color: isDone ? "var(--fg3)" : "var(--fg1)",
-                      textDecoration: isDone ? "line-through" : "none",
-                    }}
-                  >
-                    <span
-                      className={`dot ${PRIORITY_DOT_CLASS[c.priority]}`}
-                      style={{ width: 6, height: 6 }}
-                    />
-                    <span className="truncate flex-1">{c.title}</span>
-                    {col && (
-                      <span className="text-[10px] shrink-0" style={{ color: "var(--fg3)" }}>
-                        {col.name}
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
+              {sortedLinkedTasks.map((c) => (
+                <ExpandableSubRow
+                  key={c.id}
+                  task={c}
+                  depth={1}
+                  peerTasks={linkedTasksQuery.data ?? []}
+                  columnsById={linkedColumnsById}
+                  // No onOpenTask for linked-topic tasks: they navigate on click
+                />
+              ))}
               {addingSub && task.linked_topic_id && linkedFirstColumnId && (
                 <div onClick={(e) => e.stopPropagation()} className="mt-1">
                   <AddTaskInline
@@ -390,36 +371,16 @@ export function TaskCard({
           {/* In-topic sub-tasks (parent_task_id) — only when NOT linked */}
           {!isLinked && (
             <>
-              {sortedInTopicChildren.map((c) => {
-                const col = columnsById?.get(c.column_id)
-                const isDone = !!col?.is_done_column
-                return (
-                  <div
-                    key={c.id}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onClick?.(c)
-                    }}
-                    className="flex items-center gap-2 rounded-md px-1.5 py-1 cursor-pointer hover:bg-bg-hover"
-                    style={{
-                      fontSize: 12,
-                      color: isDone ? "var(--fg3)" : "var(--fg1)",
-                      textDecoration: isDone ? "line-through" : "none",
-                    }}
-                  >
-                    <span
-                      className={`dot ${PRIORITY_DOT_CLASS[c.priority]}`}
-                      style={{ width: 6, height: 6 }}
-                    />
-                    <span className="truncate flex-1">{c.title}</span>
-                    {col && (
-                      <span className="text-[10px] shrink-0" style={{ color: "var(--fg3)" }}>
-                        {col.name}
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
+              {sortedInTopicChildren.map((c) => (
+                <ExpandableSubRow
+                  key={c.id}
+                  task={c}
+                  depth={1}
+                  peerTasks={children ?? []}
+                  columnsById={columnsById ?? new Map()}
+                  onOpenTask={onEdit ?? onClick}
+                />
+              ))}
               {addingSub && topicId && (
                 <div onClick={(e) => e.stopPropagation()} className="mt-1">
                   <AddTaskInline
