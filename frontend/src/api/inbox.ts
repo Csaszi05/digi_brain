@@ -11,7 +11,7 @@ export type Ticket = {
   subject: string
   from_name: string | null
   from_email: string
-  status: "open" | "waiting" | "done" | "snoozed"
+  status: "open" | "waiting" | "done" | "snoozed" | "archived"
   priority: "high" | "med" | "low"
   ai_summary: string | null
   ai_intent: string | null
@@ -122,5 +122,19 @@ export function useDeleteInboxRuleMutation() {
       await api.delete(`/inbox/rules/${id}`)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbox-rules"] }),
+  })
+}
+
+export function useRunRulesOnExistingMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post<{ processed: number; changed: number }>("/inbox/rules/run")
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tickets"] })
+      qc.invalidateQueries({ queryKey: ["inbox-rules"] })
+    },
   })
 }

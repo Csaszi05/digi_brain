@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.crypto import decrypt
 from app.models.inbox import EmailAccount, Ticket, TicketMessage, TicketActivity
+from app.services.rule_engine import apply_rules
 
 log = logging.getLogger(__name__)
 
@@ -214,3 +215,7 @@ async def _upsert_message(
         payload={"uid": uid, "subject": subject},
     )
     db.add(activity)
+
+    # Run inbox rules on new tickets only (not on thread replies)
+    if not existing_ticket:
+        await apply_rules(ticket, body_text, db)

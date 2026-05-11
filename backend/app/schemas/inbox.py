@@ -9,6 +9,7 @@ class TicketStatus(str, Enum):
     waiting = "waiting"
     done = "done"
     snoozed = "snoozed"
+    archived = "archived"
 
 
 class TicketPriority(str, Enum):

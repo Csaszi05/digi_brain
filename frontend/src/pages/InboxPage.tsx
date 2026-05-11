@@ -35,12 +35,12 @@ import { useNavigate } from "react-router-dom"
 // ─── Static folder config ─────────────────────────────────
 
 const FOLDERS = [
-  { id: "all",     label: "All",              icon: Inbox,         status: undefined },
-  { id: "open",    label: "Open",             icon: AlertCircle,   status: "open" },
-  { id: "waiting", label: "Waiting on reply", icon: Clock,         status: "waiting" },
-  { id: "snoozed", label: "Snoozed",          icon: AlarmClock,    status: "snoozed" },
-  { id: "done",    label: "Done",             icon: CheckCircle2,  status: "done" },
-  { id: "archive", label: "Archive",          icon: Archive,       status: undefined },
+  { id: "all",      label: "All",              icon: Inbox,        status: undefined },
+  { id: "open",     label: "Open",             icon: AlertCircle,  status: "open" },
+  { id: "waiting",  label: "Waiting on reply", icon: Clock,        status: "waiting" },
+  { id: "snoozed",  label: "Snoozed",          icon: AlarmClock,   status: "snoozed" },
+  { id: "done",     label: "Done",             icon: CheckCircle2, status: "done" },
+  { id: "archived", label: "Archive",          icon: Archive,      status: "archived" },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────
@@ -80,10 +80,11 @@ function PrioPill({ p }: { p: string }) {
 
 function StatusBadge({ s }: { s: string }) {
   const map: Record<string, { label: string; fg: string; bg: string }> = {
-    open:    { label: "Open",    fg: "var(--indigo-300)", bg: "var(--accent-soft)" },
-    waiting: { label: "Waiting", fg: "var(--warn)",       bg: "rgb(251 191 36 / 0.12)" },
-    done:    { label: "Done",    fg: "var(--success)",    bg: "rgb(52 211 153 / 0.12)" },
-    snoozed: { label: "Snoozed", fg: "var(--fg3)",        bg: "var(--bg-elev2)" },
+    open:     { label: "Open",     fg: "var(--indigo-300)", bg: "var(--accent-soft)" },
+    waiting:  { label: "Waiting",  fg: "var(--warn)",       bg: "rgb(251 191 36 / 0.12)" },
+    done:     { label: "Done",     fg: "var(--success)",    bg: "rgb(52 211 153 / 0.12)" },
+    snoozed:  { label: "Snoozed",  fg: "var(--fg3)",        bg: "var(--bg-elev2)" },
+    archived: { label: "Archived", fg: "var(--fg3)",        bg: "var(--bg-elev2)" },
   }
   const { label, fg, bg } = map[s] ?? map.open
   return (
@@ -307,6 +308,9 @@ function TicketDetailPane({ ticket }: { ticket: Ticket }) {
   function markDone() {
     updateTicket.mutate({ id: ticket.id, status: "done", unread: false })
   }
+  function markArchived() {
+    updateTicket.mutate({ id: ticket.id, status: "archived", unread: false })
+  }
 
   return (
     <section className="ib-detail">
@@ -319,6 +323,7 @@ function TicketDetailPane({ ticket }: { ticket: Ticket }) {
         <div style={{ display: "flex", gap: 4 }}>
           <button className="btn btn-ghost btn-sm"><Reply size={12} strokeWidth={1.5} /> Reply</button>
           <button className="btn btn-ghost btn-sm" onClick={markDone}><Check size={12} strokeWidth={1.5} /> Done</button>
+          <button className="btn btn-ghost btn-sm" onClick={markArchived}><Archive size={12} strokeWidth={1.5} /> Archive</button>
           <button className="btn btn-ghost btn-sm"><AlarmClock size={12} strokeWidth={1.5} /> Snooze</button>
           <button className="btn btn-ghost btn-icon" aria-label="More"><MoreHorizontal size={14} strokeWidth={1.5} /></button>
         </div>
