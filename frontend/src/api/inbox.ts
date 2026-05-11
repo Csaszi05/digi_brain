@@ -53,7 +53,7 @@ export function useTicketsQuery(params?: { status?: string; account_id?: string 
   return useQuery({
     queryKey: ["tickets", params],
     queryFn: async () => {
-      const { data } = await api.get<Ticket[]>("/api/v1/tickets", { params })
+      const { data } = await api.get<Ticket[]>("/tickets", { params })
       return data
     },
   })
@@ -63,7 +63,7 @@ export function useTicketMessagesQuery(ticketId: string | null) {
   return useQuery({
     queryKey: ["ticket-messages", ticketId],
     queryFn: async () => {
-      const { data } = await api.get<TicketMessage[]>(`/api/v1/tickets/${ticketId}/messages`)
+      const { data } = await api.get<TicketMessage[]>(`/tickets/${ticketId}/messages`)
       return data
     },
     enabled: !!ticketId,
@@ -74,7 +74,7 @@ export function useUpdateTicketMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<Ticket> & { id: string }) => {
-      const { data } = await api.patch<Ticket>(`/api/v1/tickets/${id}`, payload)
+      const { data } = await api.patch<Ticket>(`/tickets/${id}`, payload)
       return data
     },
     onSuccess: () => {
@@ -87,7 +87,7 @@ export function useInboxRulesQuery() {
   return useQuery({
     queryKey: ["inbox-rules"],
     queryFn: async () => {
-      const { data } = await api.get<InboxRule[]>("/api/v1/inbox/rules")
+      const { data } = await api.get<InboxRule[]>("/inbox/rules")
       return data
     },
   })
@@ -97,7 +97,7 @@ export function useCreateInboxRuleMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (payload: Omit<InboxRule, "id" | "user_id" | "run_count" | "created_at">) => {
-      const { data } = await api.post<InboxRule>("/api/v1/inbox/rules", payload)
+      const { data } = await api.post<InboxRule>("/inbox/rules", payload)
       return data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbox-rules"] }),
@@ -108,7 +108,7 @@ export function useUpdateInboxRuleMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...payload }: Partial<InboxRule> & { id: string }) => {
-      const { data } = await api.patch<InboxRule>(`/api/v1/inbox/rules/${id}`, payload)
+      const { data } = await api.patch<InboxRule>(`/inbox/rules/${id}`, payload)
       return data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbox-rules"] }),
@@ -119,7 +119,7 @@ export function useDeleteInboxRuleMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/api/v1/inbox/rules/${id}`)
+      await api.delete(`/inbox/rules/${id}`)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbox-rules"] }),
   })

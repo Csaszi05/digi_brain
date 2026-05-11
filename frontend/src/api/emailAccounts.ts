@@ -27,7 +27,7 @@ export function useEmailAccountsQuery() {
   return useQuery({
     queryKey: ["email-accounts"],
     queryFn: async () => {
-      const { data } = await api.get<EmailAccount[]>("/api/v1/email-accounts")
+      const { data } = await api.get<EmailAccount[]>("/email-accounts")
       return data
     },
   })
@@ -37,7 +37,7 @@ export function useAddEmailAccountMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (payload: AddAccountPayload) => {
-      const { data } = await api.post<EmailAccount>("/api/v1/email-accounts", payload)
+      const { data } = await api.post<EmailAccount>("/email-accounts", payload)
       return data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["email-accounts"] }),
@@ -48,7 +48,7 @@ export function useDeleteEmailAccountMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/api/v1/email-accounts/${id}`)
+      await api.delete(`/email-accounts/${id}`)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["email-accounts"] }),
   })
@@ -58,7 +58,7 @@ export function useTestEmailAccountMutation() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.post<{ ok: boolean; message: string }>(
-        `/api/v1/email-accounts/${id}/test`
+        `/email-accounts/${id}/test`
       )
       return data
     },
@@ -70,7 +70,7 @@ export function useSyncEmailAccountMutation() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data } = await api.post<{ synced: number }>(
-        `/api/v1/email-accounts/${id}/sync`
+        `/email-accounts/${id}/sync`
       )
       return data
     },
