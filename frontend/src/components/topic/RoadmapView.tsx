@@ -1,16 +1,27 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { useQueries } from "@tanstack/react-query"
+import { createPortal } from "react-dom"
+import { api } from "@/lib/api"
 import { useTopicTasksQuery, type Task } from "@/api/tasks"
-import type { KanbanColumn } from "@/api/topics"
+import { useTopicsQuery, type KanbanColumn, type Topic } from "@/api/topics"
 
 const DAY_WIDTH = 36
 const ROW_HEIGHT = 36
 const ROW_GAP = 6
-const TODAY_OFFSET_DAYS = 7 // start range one week before today
+const TODAY_OFFSET_DAYS = 7
 
 const PRIORITY_COLOR: Record<Task["priority"], string> = {
   high: "#fb7185",
   medium: "#fbbf24",
   low: "#34d399",
+}
+
+// Deterministic color from topic id for child topics without explicit color
+function stableColor(id: string): string {
+  const palette = ["#818cf8", "#60a5fa", "#a78bfa", "#f472b6", "#34d399", "#fbbf24"]
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0
+  return palette[Math.abs(h) % palette.length]
 }
 
 function startOfDayUTC(date: Date): Date {
@@ -23,8 +34,15 @@ function diffDays(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / 86_400_000)
 }
 
+function formatDayLabel(d: Date): string {
+  return d.toLocaleDateString("en-US", { day: "numeric" })
+}
+
+function formatMonthLabel(d: Date): string {
+  return d.toLocaleDateString("en-US", { month: "short" })
+}
+
 function pickWindow(tasks: Task[]) {
-  // Compute a sensible time window: max(today-7d, earliest start) → max(latest due, today+30d)
   const today = startOfDayUTC(new Date())
   let earliest = new Date(today.getTime() - TODAY_OFFSET_DAYS * 86_400_000)
   let latest = new Date(today.getTime() + 30 * 86_400_000)
@@ -38,18 +56,31 @@ function pickWindow(tasks: Task[]) {
     }
   }
 
-  // Pad each end by 2 days so bars don't touch the edges
   earliest = new Date(earliest.getTime() - 2 * 86_400_000)
   latest = new Date(latest.getTime() + 2 * 86_400_000)
   return { start: earliest, end: latest, today }
 }
 
-function formatDayLabel(d: Date): string {
-  return d.toLocaleDateString("en-US", { day: "numeric" })
+type TaskGroup = {
+  topic: Topic | null   // null = current topic
+  depth: number         // 0 = current, 1 = child, 2 = grandchild …
+  color: string
+  tasks: Task[]
 }
 
-function formatMonthLabel(d: Date): string {
-  return d.toLocaleDateString("en-US", { month: "short" })
+/** Recursively collect all descendant topics with their depth level. */
+function getDescendantsWithDepth(
+  parentId: string,
+  allTopics: Topic[],
+  depth: number
+): Array<{ topic: Topic; depth: number }> {
+  const direct = allTopics
+    .filter((t) => t.parent_id === parentId && !t.archived)
+    .sort((a, b) => a.position - b.position)
+  return direct.flatMap((t) => [
+    { topic: t, depth },
+    ...getDescendantsWithDepth(t.id, allTopics, depth + 1),
+  ])
 }
 
 type Props = {
@@ -60,23 +91,66 @@ type Props = {
 
 export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
   const tasksQuery = useTopicTasksQuery(topicId)
-  const tasks = tasksQuery.data ?? []
+  const topicsQuery = useTopicsQuery()
+
+  const descendants = useMemo(
+    () => getDescendantsWithDepth(topicId, topicsQuery.data ?? [], 1),
+    [topicId, topicsQuery.data]
+  )
+
+  // Fetch tasks for every descendant topic in parallel.
+  const descendantTasksResults = useQueries({
+    queries: descendants.map(({ topic: t }) => ({
+      queryKey: ["tasks", { topicId: t.id }],
+      queryFn: async () => {
+        const { data } = await api.get<Task[]>(`/topics/${t.id}/tasks`)
+        return data
+      },
+      staleTime: 30_000,
+    })),
+  })
 
   const columnsById = useMemo(
     () => new Map(columns.map((c) => [c.id, c])),
     [columns]
   )
 
-  const dated = useMemo(
-    () => tasks.filter((t) => t.start_date || t.end_date || t.due_date),
-    [tasks]
+  // Build groups: [current topic, ...descendants in tree order]
+  const groups = useMemo<TaskGroup[]>(() => {
+    const result: TaskGroup[] = []
+
+    const ownTasks = tasksQuery.data ?? []
+    result.push({
+      topic: null,
+      depth: 0,
+      color: "var(--accent)",
+      tasks: ownTasks,
+    })
+
+    descendants.forEach(({ topic: ct, depth }, i) => {
+      const ctTasks = descendantTasksResults[i]?.data ?? []
+      result.push({
+        topic: ct,
+        depth,
+        color: ct.color ?? stableColor(ct.id),
+        tasks: ctTasks,
+      })
+    })
+
+    return result
+  }, [tasksQuery.data, descendants, descendantTasksResults])
+
+  // All tasks flattened for time window computation
+  const allTasks = useMemo(
+    () => groups.flatMap((g) => g.tasks),
+    [groups]
   )
-  const undated = useMemo(
-    () => tasks.filter((t) => !t.start_date && !t.end_date && !t.due_date),
-    [tasks]
+  const allDated = useMemo(
+    () => allTasks.filter((t) => t.start_date || t.end_date || t.due_date),
+    [allTasks]
   )
 
-  const { start, end, today } = useMemo(() => pickWindow(dated), [dated])
+  const { start, end, today } = useMemo(() => pickWindow(allDated), [allDated])
   const totalDays = diffDays(end, start) + 1
   const todayOffset = diffDays(today, start)
 
@@ -88,21 +162,30 @@ export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
     return arr
   }, [start, totalDays])
 
-  if (tasksQuery.isLoading) {
+  const isLoading = tasksQuery.isLoading || descendantTasksResults.some((q) => q.isLoading)
+
+  if (isLoading) {
     return <div className="text-fg3 text-sm py-12 text-center">Loading…</div>
   }
-  if (tasks.length === 0) {
+  if (allTasks.length === 0) {
     return (
       <div
         className="grid place-items-center text-fg3 text-sm"
         style={{ padding: 48, border: "1px dashed var(--border)", borderRadius: 12 }}
       >
-        No tasks yet. Add some in the Kanban view.
+        No tasks or sub-topics yet.
       </div>
     )
   }
 
   const totalWidth = totalDays * DAY_WIDTH
+
+  // Collect undated tasks from all groups
+  const allUndated = groups.flatMap((g) =>
+    g.tasks
+      .filter((t) => !t.start_date && !t.end_date && !t.due_date)
+      .map((t) => ({ task: t, group: g }))
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -138,7 +221,10 @@ export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
                 }}
               >
                 {isMonthStart && (
-                  <div className="text-[10px] uppercase font-semibold" style={{ color: "var(--fg2)", letterSpacing: "0.04em" }}>
+                  <div
+                    className="text-[10px] uppercase font-semibold"
+                    style={{ color: "var(--fg2)", letterSpacing: "0.04em" }}
+                  >
                     {formatMonthLabel(d)}
                   </div>
                 )}
@@ -150,15 +236,9 @@ export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
           })}
         </div>
 
-        {/* Task bars */}
-        <div
-          className="relative"
-          style={{
-            width: totalWidth,
-            padding: `${ROW_GAP}px 0`,
-          }}
-        >
-          {/* Today vertical line */}
+        {/* Task bars — grouped by topic */}
+        <div className="relative" style={{ width: totalWidth, padding: `${ROW_GAP}px 0` }}>
+          {/* Today line */}
           {todayOffset >= 0 && todayOffset < totalDays && (
             <div
               className="absolute"
@@ -175,29 +255,102 @@ export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
             />
           )}
 
-          {dated.length === 0 ? (
-            <div className="text-fg3 text-sm text-center" style={{ padding: 24 }}>
-              No tasks have dates yet. Set start / end / due in the task panel.
-            </div>
-          ) : (
-            dated.map((t) => (
-              <RoadmapBar
-                key={t.id}
-                task={t}
-                start={start}
-                column={columnsById.get(t.column_id)}
-                onClick={() => onTaskClick?.(t)}
-              />
-            ))
-          )}
+          {groups.map((group, gi) => {
+            const dated = group.tasks.filter(
+              (t) => t.start_date || t.end_date || t.due_date
+            )
+            // Show the group block even if no dated tasks (just don't show it)
+            if (dated.length === 0 && !group.topic) return null
+            if (dated.length === 0) return null
+
+            const indent = group.depth * 16  // px indent per depth level
+            const labelOpacity = Math.max(0.5, 1 - group.depth * 0.15)
+            const barOpacityBase = Math.max(0.5, 0.85 - group.depth * 0.1)
+
+            return (
+              <div key={group.topic?.id ?? "own"}>
+                {/* Group label for descendant topics */}
+                {group.topic && (
+                  <div
+                    className="flex items-center gap-1.5 py-1"
+                    style={{
+                      paddingLeft: 8 + indent,
+                      borderTop: gi > 0 ? "1px solid var(--border)" : "none",
+                      marginTop: gi > 0 ? 4 : 0,
+                      opacity: labelOpacity,
+                    }}
+                  >
+                    {/* Depth indicator lines */}
+                    {Array.from({ length: group.depth }).map((_, di) => (
+                      <span
+                        key={di}
+                        style={{
+                          width: 1,
+                          height: 14,
+                          background: "var(--border-strong)",
+                          flexShrink: 0,
+                          marginRight: 2,
+                        }}
+                      />
+                    ))}
+                    <span
+                      className="tag-dot shrink-0"
+                      style={{
+                        background: group.color,
+                        width: Math.max(4, 8 - group.depth),
+                        height: Math.max(4, 8 - group.depth),
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: Math.max(10, 12 - group.depth),
+                        fontWeight: group.depth === 1 ? 600 : 500,
+                        color: `var(--fg${Math.min(3, group.depth + 1)})`,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {group.topic.icon ? `${group.topic.icon} ` : ""}
+                      {group.topic.name}
+                    </span>
+                  </div>
+                )}
+
+                {dated.map((t) => {
+                  const barColor = group.depth === 0
+                    ? PRIORITY_COLOR[t.priority]
+                    : group.color
+                  const colEntry = columnsById.get(t.column_id)
+                  const isDone = group.depth === 0
+                    ? !!colEntry?.is_done_column
+                    : !!t.completed_at
+
+                  return (
+                    <RoadmapBar
+                      key={t.id}
+                      task={t}
+                      start={start}
+                      barColor={barColor}
+                      barOpacityOverride={barOpacityBase}
+                      isDoneOverride={isDone}
+                      indent={indent}
+                      topicLabel={group.topic?.name}
+                      topicColor={group.topic ? group.color : undefined}
+                      onClick={() => onTaskClick?.(t)}
+                    />
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      {undated.length > 0 && (
+      {/* Undated tasks from all groups */}
+      {allUndated.length > 0 && (
         <div>
           <div className="tp-section-label">Undated tasks</div>
           <div className="flex flex-wrap gap-2 mt-2">
-            {undated.map((t) => (
+            {allUndated.map(({ task: t, group: g }) => (
               <button
                 key={t.id}
                 type="button"
@@ -205,6 +358,12 @@ export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
                 onClick={() => onTaskClick?.(t)}
                 style={{ cursor: "pointer" }}
               >
+                {g.topic && (
+                  <span
+                    className="tag-dot"
+                    style={{ background: g.color, width: 6, height: 6 }}
+                  />
+                )}
                 <span
                   className={`dot dot-${
                     t.priority === "high" ? "high" : t.priority === "medium" ? "med" : "low"
@@ -221,24 +380,38 @@ export function RoadmapView({ topicId, columns, onTaskClick }: Props) {
   )
 }
 
+function fmtDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
 function RoadmapBar({
   task,
   start,
-  column,
+  barColor,
+  barOpacityOverride,
+  isDoneOverride,
+  indent = 0,
+  topicLabel,
+  topicColor,
   onClick,
 }: {
   task: Task
   start: Date
-  column: KanbanColumn | undefined
+  barColor: string
+  barOpacityOverride?: number   // reduces opacity for deeper levels
+  isDoneOverride: boolean
+  indent?: number               // left indent in px for hierarchy visualization
+  topicLabel?: string
+  topicColor?: string
   onClick: () => void
 }) {
-  // Resolve dates
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
+
   const sd = task.start_date ? startOfDayUTC(new Date(task.start_date)) : null
   const ed = task.end_date ? startOfDayUTC(new Date(task.end_date)) : null
   const dd = task.due_date ? startOfDayUTC(new Date(task.due_date)) : null
 
   const today = startOfDayUTC(new Date())
-  const isDone = !!column?.is_done_column
 
   const barStartIso = sd ?? ed ?? dd
   const barEndIso = ed ?? dd ?? sd
@@ -246,40 +419,43 @@ function RoadmapBar({
 
   const barStartDay = diffDays(barStartIso, start)
   const barEndDay = diffDays(barEndIso, start)
-  const barLeft = barStartDay * DAY_WIDTH
-  const barWidth = Math.max((barEndDay - barStartDay + 1) * DAY_WIDTH, 14)
+  const indentPx = indent ?? 0
+  const barLeft = barStartDay * DAY_WIDTH + indentPx
+  const barWidth = Math.max((barEndDay - barStartDay + 1) * DAY_WIDTH - indentPx, 14)
 
-  // Buffer zone: from end_date to due_date (only when both exist and due_date > end_date)
   let bufferLeft = 0
   let bufferWidth = 0
   if (ed && dd && dd.getTime() > ed.getTime()) {
     const bs = diffDays(ed, start) + 1
     const be = diffDays(dd, start)
-    bufferLeft = bs * DAY_WIDTH
-    bufferWidth = (be - bs + 1) * DAY_WIDTH
+    bufferLeft = bs * DAY_WIDTH + indentPx
+    bufferWidth = (be - bs + 1) * DAY_WIDTH - indentPx
   }
 
-  // State color
-  const priorityColor = PRIORITY_COLOR[task.priority]
-  let barColor = priorityColor
-  let barOpacity = 0.85
-  if (isDone) {
-    barColor = "#34d399"
-    barOpacity = 0.5
+  let color = barColor
+  let barOpacity = barOpacityOverride ?? 0.85
+  if (isDoneOverride) {
+    color = "#34d399"
+    barOpacity = Math.min(barOpacity, 0.5)
   } else if (dd && today.getTime() > dd.getTime()) {
-    // Overdue
-    barColor = "#fb7185"
+    color = "#fb7185"
   } else if (ed && today.getTime() > ed.getTime()) {
-    // At risk (slipped past planned end but not due yet)
-    barColor = "#fbbf24"
+    color = "#fbbf24"
   }
+
+  // Keep tooltip inside the viewport
+  const ttLeft = tooltipPos
+    ? Math.min(tooltipPos.x + 12, window.innerWidth - 220)
+    : 0
+  const ttTop = tooltipPos
+    ? Math.min(tooltipPos.y + 16, window.innerHeight - 140)
+    : 0
 
   return (
     <div
       className="relative"
       style={{ height: ROW_HEIGHT + ROW_GAP, paddingTop: ROW_GAP }}
     >
-      {/* Buffer zone */}
       {bufferWidth > 0 && (
         <div
           className="absolute rounded-md"
@@ -288,13 +464,12 @@ function RoadmapBar({
             top: ROW_GAP,
             height: ROW_HEIGHT,
             width: bufferWidth,
-            background: priorityColor,
+            background: barColor,
             opacity: 0.18,
           }}
         />
       )}
 
-      {/* Bar */}
       <div
         className="absolute rounded-md flex items-center px-2 cursor-pointer transition-all hover:brightness-110"
         style={{
@@ -302,32 +477,93 @@ function RoadmapBar({
           top: ROW_GAP,
           height: ROW_HEIGHT,
           width: barWidth,
-          background: barColor,
+          background: color,
           opacity: barOpacity,
           color: "var(--bg-app)",
           fontSize: 12,
           fontWeight: 500,
-          border: `1px solid ${barColor}`,
-          textDecoration: isDone ? "line-through" : "none",
           overflow: "hidden",
           whiteSpace: "nowrap",
+          textDecoration: isDoneOverride ? "line-through" : "none",
         }}
-        title={[
-          task.title,
-          sd && `Start: ${sd.toISOString().slice(0, 10)}`,
-          ed && `Planned end: ${ed.toISOString().slice(0, 10)}`,
-          dd && `Due: ${dd.toISOString().slice(0, 10)}`,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
         onClick={onClick}
+        onMouseEnter={(e) => setTooltipPos({ x: e.clientX, y: e.clientY })}
+        onMouseMove={(e) => setTooltipPos({ x: e.clientX, y: e.clientY })}
+        onMouseLeave={() => setTooltipPos(null)}
       >
         <span className="truncate" style={{ minWidth: 0 }}>
+          {task.icon ? `${task.icon} ` : ""}
           {task.title}
         </span>
       </div>
 
-      {/* Due date marker (vertical pin if no buffer) */}
+      {/* Styled tooltip — fixed position so it's never clipped by the scrollable container */}
+      {tooltipPos &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: ttTop,
+              left: ttLeft,
+              zIndex: 500,
+              background: "var(--bg-elev1)",
+              border: "1px solid var(--border-strong)",
+              borderRadius: 8,
+              boxShadow: "var(--shadow-md)",
+              padding: "8px 12px",
+              minWidth: 180,
+              maxWidth: 260,
+              pointerEvents: "none",
+            }}
+          >
+            <div
+              className="font-semibold text-fg1 truncate"
+              style={{ fontSize: 13 }}
+            >
+              {task.icon ? `${task.icon} ` : ""}
+              {task.title}
+            </div>
+
+            {topicLabel && (
+              <div
+                className="flex items-center gap-1.5 mt-1"
+                style={{ fontSize: 11 }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: topicColor ?? "var(--accent)",
+                    flexShrink: 0,
+                  }}
+                />
+                <span className="text-fg3 truncate">{topicLabel}</span>
+              </div>
+            )}
+
+            <div className="mt-1.5 flex flex-col gap-0.5" style={{ fontSize: 11, color: "var(--fg3)" }}>
+              {sd && <span>Start: {fmtDate(sd)}</span>}
+              {ed && <span>Planned end: {fmtDate(ed)}</span>}
+              {dd && (
+                <span style={{ color: isDoneOverride ? "var(--success)" : "var(--fg2)" }}>
+                  Due: {fmtDate(dd)}
+                  {!isDoneOverride && dd.getTime() < today.getTime() && " ⚠"}
+                </span>
+              )}
+              {isDoneOverride && (
+                <span style={{ color: "var(--success)" }}>✓ Done</span>
+              )}
+              {task.story_points !== null && task.story_points !== undefined && (
+                <span style={{ color: "var(--indigo-300)" }}>
+                  {task.story_points} story points
+                </span>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+
       {dd && !ed && (
         <div
           className="absolute"
