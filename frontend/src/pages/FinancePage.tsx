@@ -221,7 +221,7 @@ export default function FinancePage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <StatBox
           label="Total spent"
           rows={expenseRows.map(([cur, amt]) => formatAmount(amt, cur))}
@@ -246,7 +246,7 @@ export default function FinancePage() {
         />
       </div>
 
-      <div className="grid grid-cols-[1.6fr_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="card">
           <div className="card-header">
             <div className="text-base font-semibold text-fg1">Spending by category</div>

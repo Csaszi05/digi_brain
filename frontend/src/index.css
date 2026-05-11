@@ -1437,3 +1437,225 @@
     right: -5px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE  (max-width: 768px)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── App shell: single-column on mobile ─────────────────── */
+@media (max-width: 768px) {
+  /* Prevent horizontal overflow globally */
+  html, body, #root { overflow-x: hidden; }
+
+  .app-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Sidebar becomes a fixed overlay */
+  .sb {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 110;
+    transform: translateX(-100%);
+    transition: transform var(--dur-slow) var(--ease-standard);
+    box-shadow: var(--shadow-md);
+    width: var(--sidebar-w);
+  }
+  .sb.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Backdrop behind open sidebar */
+  .mobile-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(2px);
+    z-index: 109;
+  }
+  .mobile-sidebar-backdrop.visible {
+    display: block;
+  }
+
+  /* Main area gets full width */
+  .main {
+    width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Reserve space for bottom nav */
+  .main-scroll {
+    padding-bottom: calc(64px + 24px) !important;
+    overflow-x: hidden;
+  }
+
+  /* ─── TopBar: compact ──────────────────────── */
+  .topbar {
+    padding: 0 12px;
+    gap: 6px;
+  }
+  /* Hide search bar on mobile — use sidebar search instead */
+  .global-search { display: none; }
+  /* Hide bell/help icons on mobile */
+  .topbar-right > .btn-ghost.btn-icon:not(:last-child) { display: none; }
+  /* Compact timer */
+  .timer-widget-label { display: none; }
+
+  /* ─── Page head: wrap on mobile ──────────────── */
+  .page-head {
+    flex-wrap: wrap;
+    gap: 8px !important;
+    align-items: flex-start;
+  }
+  .page-head h1 {
+    font-size: 1.5rem;
+  }
+  /* Page head actions: smaller buttons */
+  .page-head .btn { height: 30px; font-size: 12px; padding: 0 10px; }
+
+  /* ─── Page inner: tighter horizontal padding ─ */
+  .page-inner {
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* ─── Cards: no horizontal overflow ─────────── */
+  .card {
+    overflow: hidden;
+  }
+
+  /* ─── Kanban: narrower columns, touch scroll ─ */
+  .kb-col { width: 260px; }
+  .kb-board-wrap { -webkit-overflow-scrolling: touch; }
+
+  /* ─── Tables on mobile: hide some columns ────── */
+  .list-col-updated { display: none; }
+
+  /* ─── Stat cards: smaller numbers ───────────── */
+  .stat-value { font-size: 1.4rem !important; }
+
+  /* ─── Tabs: allow scroll on mobile ──────────── */
+  .tabs { overflow-x: auto; flex-wrap: nowrap; max-width: 100%; }
+  .tab { flex-shrink: 0; }
+
+  /* ─── Truncate text in tight spaces ─────────── */
+  .sb-nav-label, .sb-brand-name { overflow: hidden; text-overflow: ellipsis; }
+
+  /* ─── Note section grid: single col on mobile ─ */
+  .note-card-snippet { -webkit-line-clamp: 2; }
+
+  /* ─── Topbar right: wrap protection ─────────── */
+  .topbar-right { gap: 4px; }
+  .topbar-right .sb-avatar { width: 26px; height: 26px; font-size: 11px; }
+
+  /* ─── Buttons in topbar: smaller ────────────── */
+  .topbar .btn { height: 30px; }
+
+  /* ─── Finance/Time page heads ────────────────── */
+  .page-head > div:last-child {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* ─── Panels full-screen on mobile ──────────── */
+  .tp-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-left: none !important;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    top: auto !important;
+    bottom: 0 !important;
+    max-height: 92dvh;
+  }
+  .tp-backdrop {
+    /* let panel fill from bottom */
+    align-items: flex-end;
+    display: flex;
+  }
+
+  /* ─── Bottom nav bar ─────────────────────────── */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--bg-elev1);
+    border-top: 1px solid var(--border);
+    height: 64px;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -1px 0 var(--border);
+  }
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex: 1;
+    color: var(--fg3);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    border-radius: 8px;
+    transition: color var(--dur-fast), background var(--dur-fast);
+    padding: 6px 4px;
+    text-decoration: none;
+  }
+  .mobile-nav-item[data-active="true"] {
+    color: var(--accent-hover);
+  }
+  .mobile-nav-item:active {
+    background: var(--bg-hover);
+  }
+
+  /* ─── Dashboard: responsive widgets ─────────── */
+  .dashboard-grid-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .dashboard-grid-main {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ─── stat cards: smaller values on mobile ─── */
+  .stat-value {
+    font-size: 1.5rem !important;
+  }
+
+  /* ─── Note page full-screen toolbar ─────────── */
+  .note-topbar-search {
+    display: none;
+  }
+
+  /* ─── Timer widget compact on mobile ─────────── */
+  .timer-widget {
+    max-width: 140px;
+  }
+  .timer-widget-label {
+    display: none;
+  }
+
+  /* ─── Tables: hide less important cols on mobile */
+  .list-col-updated {
+    display: none;
+  }
+}
+
+/* ─── Tablet: 769–1024px ─────────────────────────────────── */
+@media (min-width: 769px) {
+  .mobile-nav {
+    display: none;
+  }
+  .mobile-sidebar-backdrop {
+    display: none !important;
+  }
+}

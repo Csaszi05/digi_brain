@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom"
 import { Sidebar } from "./Sidebar"
 import { TopBar, type Crumb } from "./TopBar"
+import { MobileNav } from "./MobileNav"
 import { useUIStore } from "@/stores/uiStore"
 
 const ROUTE_CRUMBS: Record<string, Crumb[]> = {
@@ -35,6 +36,8 @@ export function RootLayout() {
           </div>
         </div>
       </div>
+      {/* Bottom navigation — hidden on desktop via CSS media query */}
+      <MobileNav />
     </div>
   )
 }

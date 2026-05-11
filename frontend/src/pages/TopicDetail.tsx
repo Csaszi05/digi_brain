@@ -61,7 +61,7 @@ export default function TopicDetail() {
         taskCount={taskCount}
         rightSlot={
           <>
-            <div className="tabs">
+            <div className="tabs flex-shrink-0" style={{ flexWrap: "nowrap" }}>
               {VIEW_TABS.map((t) => {
                 const Icon = t.icon
                 return (
@@ -71,26 +71,26 @@ export default function TopicDetail() {
                     className="tab"
                     data-active={view === t.id ? "true" : "false"}
                     onClick={() => setView(t.id)}
+                    style={{ flexShrink: 0 }}
                   >
                     <Icon size={13} strokeWidth={1.5} />
-                    {t.label}
+                    <span className="hidden sm:inline">{t.label}</span>
                   </button>
                 )
               })}
             </div>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary flex-shrink-0"
               disabled={!firstColumnId}
               onClick={() => {
                 if (!firstColumnId) return
-                // Inline add-task lives inside KanbanBoard; switch there from any view.
                 if (view !== "kanban") setView("kanban")
                 setAddingForColumn(firstColumnId)
               }}
             >
               <Plus size={14} strokeWidth={1.5} />
-              Add task
+              <span className="hidden sm:inline">Add task</span>
             </button>
           </>
         }

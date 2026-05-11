@@ -1,4 +1,4 @@
-import { Bell, CircleHelp, Search } from "lucide-react"
+import { Bell, CircleHelp, Menu, Search } from "lucide-react"
 import { Fragment } from "react"
 import { useUIStore } from "@/stores/uiStore"
 import { TimerWidget } from "@/components/time/TimerWidget"
@@ -14,10 +14,22 @@ type TopBarProps = {
 
 export function TopBar({ crumbs = [] }: TopBarProps) {
   const openCmdk = useUIStore((s) => s.openCmdk)
+  const openMobileSidebar = useUIStore((s) => s.openMobileSidebar)
 
   return (
     <header className="topbar">
-      <div className="crumbs">
+      {/* Hamburger — mobile only */}
+      <button
+        type="button"
+        className="btn btn-ghost btn-icon md:hidden"
+        aria-label="Open menu"
+        onClick={openMobileSidebar}
+        style={{ flexShrink: 0 }}
+      >
+        <Menu size={18} strokeWidth={1.5} />
+      </button>
+
+      <div className="crumbs hidden sm:flex">
         {crumbs.map((c, i) => (
           <Fragment key={i}>
             {i > 0 && <span className="sep">/</span>}

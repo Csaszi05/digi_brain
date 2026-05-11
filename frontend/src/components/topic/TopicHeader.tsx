@@ -80,7 +80,7 @@ export function TopicHeader({ topic, taskCount, rightSlot }: Props) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-wrap items-start gap-2 sm:flex-nowrap sm:items-center sm:justify-between sm:gap-4">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <EmojiPicker
           value={topic.icon}
@@ -129,7 +129,7 @@ export function TopicHeader({ topic, taskCount, rightSlot }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 w-full overflow-x-auto sm:w-auto sm:overflow-visible">
         {rightSlot}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>

@@ -122,14 +122,16 @@ export default function Dashboard() {
         />
       )}
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {layout.map((inst) => {
           const meta = WIDGETS[inst.type]
           if (!meta) return null
           const Component = meta.Component
+          // On mobile: full width for all widgets; on sm+: respect span
           return (
             <div
               key={inst.id}
+              className="col-span-2"
               style={{ gridColumn: `span ${meta.span}` }}
             >
               <Component config={inst.config} />

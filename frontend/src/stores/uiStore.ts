@@ -3,9 +3,12 @@ import { persist } from "zustand/middleware"
 
 type UIState = {
   sidebarCollapsed: boolean
+  mobileSidebarOpen: boolean
   expandedTopicIds: string[]
   cmdkOpen: boolean
   toggleSidebar: () => void
+  openMobileSidebar: () => void
+  closeMobileSidebar: () => void
   toggleTopic: (id: string) => void
   isTopicExpanded: (id: string) => boolean
   openCmdk: () => void
@@ -16,10 +19,13 @@ export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
       sidebarCollapsed: false,
+      mobileSidebarOpen: false,
       expandedTopicIds: ["univ"],
       cmdkOpen: false,
       toggleSidebar: () =>
         set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      openMobileSidebar: () => set({ mobileSidebarOpen: true }),
+      closeMobileSidebar: () => set({ mobileSidebarOpen: false }),
       toggleTopic: (id) =>
         set((s) => {
           const has = s.expandedTopicIds.includes(id)

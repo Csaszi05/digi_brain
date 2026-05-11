@@ -147,6 +147,8 @@ export function Sidebar() {
   const collapsed = useUIStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useUIStore((s) => s.toggleSidebar)
   const openCmdk = useUIStore((s) => s.openCmdk)
+  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen)
+  const closeMobileSidebar = useUIStore((s) => s.closeMobileSidebar)
   const location = useLocation()
   const navigate = useNavigate()
   const activeTopicId = activeTopicIdFromPath(location.pathname)
@@ -169,7 +171,16 @@ export function Sidebar() {
 
   return (
     <>
-    <aside className="sb" data-collapsed={collapsed ? "true" : "false"}>
+    {/* Mobile backdrop */}
+    <div
+      className={`mobile-sidebar-backdrop${mobileSidebarOpen ? " visible" : ""}`}
+      onClick={closeMobileSidebar}
+      aria-hidden
+    />
+    <aside
+      className={`sb${mobileSidebarOpen ? " mobile-open" : ""}`}
+      data-collapsed={collapsed ? "true" : "false"}
+    >
       <div className="sb-header">
         <div className="sb-brand">
           <div className="sb-brand-glyph">DB</div>
