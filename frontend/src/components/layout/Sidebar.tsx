@@ -10,6 +10,7 @@ import {
   FileText,
   Lock,
   Inbox,
+  CalendarDays,
   LogOut,
   Moon,
   PanelLeftClose,
@@ -35,7 +36,8 @@ const NAV_ITEMS: NavItem[] = [
   { id: "finance", to: "/finance", label: "Finances", icon: Wallet },
   { id: "notes", to: "/notes", label: "Notes", icon: FileText },
   { id: "vault", to: "/vault", label: "Vault", icon: Lock },
-  { id: "inbox", to: "/inbox", label: "Inbox", icon: Inbox },
+  { id: "inbox",    to: "/inbox",    label: "Inbox",    icon: Inbox },
+  { id: "calendar", to: "/calendar", label: "Calendar", icon: CalendarDays },
 ]
 
 function Caret({ open, leaf }: { open: boolean; leaf: boolean }) {

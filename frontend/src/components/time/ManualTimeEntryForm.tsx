@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Clock, X } from "lucide-react"
 import { useCreateManualEntryMutation } from "@/api/time"
-import { useTopicsQuery } from "@/api/topics"
+import { TopicPicker } from "@/components/ui/TopicPicker"
 
 type Props = {
   onClose: () => void
@@ -38,7 +38,6 @@ export function ManualTimeEntryForm({ onClose }: Props) {
   const [endedAt, setEndedAt] = useState(toLocalDatetimeInput(now))
   const [note, setNote] = useState("")
 
-  const topicsQuery = useTopicsQuery()
   const create = useCreateManualEntryMutation()
 
   const duration = startedAt && endedAt ? formatDuration(
@@ -88,20 +87,11 @@ export function ManualTimeEntryForm({ onClose }: Props) {
 
       <div>
         <div className="tp-field-label">Topic</div>
-        <select
-          className="tp-field-select"
-          value={topicId}
-          onChange={(e) => setTopicId(e.target.value)}
-          required
-        >
-          <option value="">Select a topic…</option>
-          {(topicsQuery.data ?? []).map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.icon ? `${t.icon} ` : ""}
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <TopicPicker
+          value={topicId || null}
+          onChange={id => setTopicId(id ?? "")}
+          placeholder="Válassz topicot…"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { ExternalLink, FileText, Link2Off, Trash2, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useTopicsQuery, type KanbanColumn } from "@/api/topics"
+import { type KanbanColumn } from "@/api/topics"
+import { TopicPicker } from "@/components/ui/TopicPicker"
 import {
   useDeleteTaskMutation,
   usePromoteTaskMutation,
@@ -57,7 +58,7 @@ export function TaskPanel({ task, columns, topicId, onClose }: Props) {
   const del = useDeleteTaskMutation(topicId)
   const promote = usePromoteTaskMutation(topicId)
   const tasksQuery = useTopicTasksQuery(topicId)
-  const topicsQuery = useTopicsQuery()
+
   const navigate = useNavigate()
 
   // Local copies for text fields that we save on blur, so typing isn't laggy.
@@ -337,27 +338,11 @@ export function TaskPanel({ task, columns, topicId, onClose }: Props) {
             <div className="tp-section-label" style={{ marginBottom: 0 }}>
               Linked page
             </div>
-            {/* Single always-visible dropdown — no modes */}
-            <select
-              className="tp-field-select"
-              value={task.linked_topic_id ?? ""}
-              onChange={(e) =>
-                update.mutate({
-                  id: task.id,
-                  linked_topic_id: e.target.value || null,
-                })
-              }
-            >
-              <option value="">— No linked page —</option>
-              {(topicsQuery.data ?? [])
-                .filter((t) => t.id !== topicId)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.icon ? `${t.icon} ` : ""}
-                    {t.name}
-                  </option>
-                ))}
-            </select>
+            <TopicPicker
+              value={task.linked_topic_id ?? null}
+              onChange={id => update.mutate({ id: task.id, linked_topic_id: id })}
+              placeholder="— No linked page —"
+            />
             {/* Action buttons below the dropdown */}
             <div className="flex items-center gap-2">
               {task.linked_topic_id ? (
