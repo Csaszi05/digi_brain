@@ -31,7 +31,7 @@ CalDAV szerver (Google / Apple / Outlook)
    Frontend
    ├── Dashboard widget    (mai napirend)
    ├── Topic detail tab    (adott topichoz rendelt események)
-   └── Time tracking       ("Log as time entry" gomb)
+   └── Time tracking       ("Log as time entry" gomb) 
 ```
 
 ---
