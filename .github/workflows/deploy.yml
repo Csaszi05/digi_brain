@@ -9,9 +9,27 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Backup database
+        run: |
+          BACKUP_DIR="/mnt/hdd2/nextcloud-data/Marcika05/files/Backups/digibrain"
+          BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).dump"
+
+          sudo mkdir -p "$BACKUP_DIR"
+
+          docker exec digi_brain-db-1 pg_dump -U digibrain -d digibrain -Fc -f /tmp/pre_deploy.dump
+          docker cp digi_brain-db-1:/tmp/pre_deploy.dump "$BACKUP_FILE"
+
+          ls -t "$BACKUP_DIR"/*.dump | tail -n +8 | xargs -r sudo rm
+
+          docker exec nextcloud-app-1 php occ files:scan --path="/Marcika05/files/Backups" --quiet
+
+          echo "Backup kész: $BACKUP_FILE"
+
       - name: Deploy
         run: |
           cd ${{ secrets.SERVER_APP_PATH }}
           git pull
           docker compose -f docker-compose.prod.yml up -d --build
-          docker system prune -f
+
+      - name: Cleanup
+        run: docker system prune -f
