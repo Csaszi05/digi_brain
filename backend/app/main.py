@@ -15,6 +15,7 @@ from app.api.v1 import time as time_router
 from app.api.v1 import calendar_accounts as calendar_router
 from app.api.v1 import email_accounts as email_accounts_router
 from app.api.v1 import inbox_rules as inbox_rules_router
+from app.api.v1 import shopping as shopping_router
 from app.api.v1 import tickets as tickets_router
 from app.api.v1 import topics as topics_router
 from app.core.config import settings
@@ -87,3 +88,4 @@ app.include_router(tickets_router.router, prefix="/api/v1")
 app.include_router(inbox_rules_router.router, prefix="/api/v1")
 app.include_router(email_accounts_router.router, prefix="/api/v1")
 app.include_router(calendar_router.router, prefix="/api/v1")
+app.include_router(shopping_router.router, prefix="/api/v1")

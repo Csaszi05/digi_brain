@@ -13,6 +13,7 @@ import InboxRulesPage from "@/pages/InboxRulesPage"
 import InboxSettingsPage from "@/pages/InboxSettingsPage"
 import CalendarSettingsPage from "@/pages/CalendarSettingsPage"
 import CalendarPage from "@/pages/CalendarPage"
+import ShoppingPage from "@/pages/ShoppingPage"
 
 /**
  * Wraps all protected routes. Redirects to /login when there is no valid
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="/inbox/settings" element={<InboxSettingsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/calendar/settings" element={<CalendarSettingsPage />} />
+          <Route path="/shopping" element={<ShoppingPage />} />
         </Route>
       </Route>
 

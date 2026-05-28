@@ -11,6 +11,7 @@ import {
   Lock,
   Inbox,
   CalendarDays,
+  ShoppingCart,
   LogOut,
   Moon,
   PanelLeftClose,
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "vault", to: "/vault", label: "Vault", icon: Lock },
   { id: "inbox",    to: "/inbox",    label: "Inbox",    icon: Inbox },
   { id: "calendar", to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { id: "shopping", to: "/shopping", label: "Shopping", icon: ShoppingCart },
 ]
 
 function Caret({ open, leaf }: { open: boolean; leaf: boolean }) {

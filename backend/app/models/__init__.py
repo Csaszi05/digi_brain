@@ -8,6 +8,7 @@ from app.models.time_entry import TimeEntry
 from app.models.finance import Category, Transaction, Budget, TransactionKind, BudgetPeriod
 from app.models.inbox import EmailAccount, Ticket, TicketMessage, InboxRule, TicketActivity
 from app.models.calendar import CalendarAccount, Calendar, CalendarEvent
+from app.models.shopping import ShoppingList, ShoppingItem
 
 __all__ = [
     "User",
