@@ -498,6 +498,8 @@ export default function ShoppingPage() {
           <EmptyState onNew={() => setShowNew(true)} />
         ) : (
           <>
+            {/* Sticky top: header + quickadd stay together at viewport top */}
+            <div className="sh-stickytop">
             {/* Header (sticky on mobile) */}
             <div className="sh-header">
               {/* Mobile: dropdown ; Desktop: title */}
@@ -557,7 +559,7 @@ export default function ShoppingPage() {
 
             {activeList && !showNew && (
               <>
-                {/* Quick-add input (sticky) */}
+                {/* Quick-add input — part of sticky top */}
                 <form onSubmit={handleAdd} className="sh-quickadd">
                   <Plus size={16} strokeWidth={1.5} style={{ color: "var(--fg3)", flexShrink: 0 }} />
                   <input
@@ -570,7 +572,12 @@ export default function ShoppingPage() {
                     onChange={e => setQuickAdd(e.target.value)}
                   />
                 </form>
+              </>
+            )}
+            </div>
 
+            {activeList && !showNew && (
+              <>
                 {/* Items grouped by category */}
                 <div className="sh-items">
                   {items.length === 0 && (

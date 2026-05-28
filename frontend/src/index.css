@@ -1813,7 +1813,8 @@
   grid-template-columns: 240px 1fr;
   gap: 0;
   min-height: calc(100vh - var(--topbar-h, 56px));
-  margin: -16px;
+  /* full-bleed: pull edges past .main-scroll's padding (24px h / 24px t / 48px b) */
+  margin: -24px -24px -48px -24px;
   background: var(--bg-app);
 }
 .sh-sidebar-wrap { border-right: 1px solid var(--border); background: var(--bg-elev1); }
@@ -1848,10 +1849,16 @@
   text-align: center; line-height: 1.5;
 }
 
+.sh-stickytop {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-app);
+}
 .sh-header {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 20px; border-bottom: 1px solid var(--border);
-  background: var(--bg-app); position: sticky; top: 0; z-index: 10;
+  background: var(--bg-app);
 }
 .sh-header-title { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .sh-header-count {
@@ -1865,7 +1872,7 @@
 .sh-quickadd {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 20px; border-bottom: 1px solid var(--border);
-  background: var(--bg-app); position: sticky; top: 56px; z-index: 9;
+  background: var(--bg-app);
 }
 .sh-quickadd-input {
   flex: 1; height: 40px; padding: 0 4px; font-size: 15px;
@@ -2040,13 +2047,14 @@
 @media (max-width: 767px) {
   .sh-page {
     grid-template-columns: 1fr;
-    margin: -16px;
+    /* mobile main-scroll padding-bottom is 88px (64+24 for bottom nav) */
+    margin: -24px -24px -88px -24px;
   }
   .sh-sidebar-wrap { display: none; }
   .sh-mobile-only { display: flex; flex: 1; min-width: 0; }
   .sh-desktop-only { display: none; }
   .sh-header { padding: 10px 14px; }
-  .sh-quickadd { padding: 10px 14px; top: 60px; }
+  .sh-quickadd { padding: 10px 14px; }
   .sh-quickadd-input { height: 44px; font-size: 16px; }  /* prevent iOS zoom */
   .sh-category { padding: 10px 14px 6px 14px; }
   .sh-item { padding: 12px 14px; min-height: 52px; }
