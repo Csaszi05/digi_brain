@@ -1809,16 +1809,19 @@
 /* ─── Shopping page ─────────────────────────────────────── */
 
 .sh-page {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 0;
-  min-height: calc(100vh - var(--topbar-h, 56px));
+  display: flex;
   /* full-bleed: pull edges past .main-scroll's padding (24px h / 24px t / 48px b) */
   margin: -24px -24px -48px -24px;
   background: var(--bg-app);
+  overflow-x: hidden;
+  max-width: 100vw;
 }
-.sh-sidebar-wrap { border-right: 1px solid var(--border); background: var(--bg-elev1); }
-.sh-main { display: flex; flex-direction: column; min-width: 0; }
+.sh-sidebar-wrap {
+  width: 240px; flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-elev1);
+}
+.sh-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 
 .sh-lists { padding: 12px 8px; position: sticky; top: 0; }
 .sh-lists-header {
@@ -2046,7 +2049,6 @@
 
 @media (max-width: 767px) {
   .sh-page {
-    grid-template-columns: 1fr;
     /* mobile main-scroll padding-bottom is 88px (64+24 for bottom nav) */
     margin: -24px -24px -88px -24px;
   }
