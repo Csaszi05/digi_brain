@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="32" viewBox="0 0 160 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#6366f1"></rect>
+  <svg x="4" y="4" width="24" height="24" viewBox="0 0 56 56">
+    <g fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M28 14 C 21 10, 12 13, 13 21 C 8 23, 9 31, 15 32 C 12 38, 17 43, 24 41"></path>
+      <path d="M28 14 C 35 10, 44 13, 43 21 C 48 23, 47 31, 41 32 C 44 38, 39 43, 32 41"></path>
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round">
+      <path d="M28 15 L28 41"></path>
+      <path d="M28 22 L20 22"></path>
+      <path d="M28 30 L37 30"></path>
+      <path d="M28 36 L22 36"></path>
+    </g>
+    <g fill="#ffffff">
+      <circle cx="28" cy="15" r="2.4"></circle>
+      <circle cx="20" cy="22" r="2.4"></circle>
+      <circle cx="37" cy="30" r="2.4"></circle>
+      <circle cx="22" cy="36" r="2.4"></circle>
+      <circle cx="28" cy="41" r="2.4"></circle>
+    </g>
+  </svg>
+  <text x="42" y="22" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="16" fill="currentColor" letter-spacing="-0.015em">DigiBrain</text>
+</svg>
