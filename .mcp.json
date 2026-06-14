@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "digibrain": {
+      "command": "/Users/csaszarmarcell/dev/digi_brain/mcp-server/.venv/bin/python",
+      "args": ["-m", "digibrain_mcp"]
+    }
+  }
+}
