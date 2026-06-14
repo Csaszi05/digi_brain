@@ -130,6 +130,19 @@ class DigiBrainClient:
     async def list_time_entries(self, **params: Any) -> list[dict]:
         return await self._request("GET", "/time/entries", params=_clean(params))
 
+    # ── calendar ────────────────────────────────────────────
+    async def list_calendars(self) -> list[dict]:
+        return await self._request("GET", "/calendar/calendars")
+
+    async def list_events(self, **params: Any) -> list[dict]:
+        return await self._request("GET", "/calendar/events", params=_clean(params))
+
+    async def create_event(self, **body: Any) -> dict:
+        return await self._request("POST", "/calendar/events", json=_clean(body))
+
+    async def update_event(self, event_id: str, **body: Any) -> dict:
+        return await self._request("PATCH", f"/calendar/events/{event_id}", json=_clean(body))
+
     # ── convenience resolvers ───────────────────────────────
     async def resolve_column(self, topic_id: str, column_name: str) -> str:
         """Map a human column name (e.g. 'To Do') to its column_id within a topic."""
@@ -141,6 +154,26 @@ class DigiBrainClient:
         names = ", ".join(repr(c["name"]) for c in columns) or "(none)"
         raise DigiBrainError(
             f"No column named {column_name!r} in this topic. Available: {names}"
+        )
+
+    async def resolve_calendar(self, calendar_name: str | None) -> str:
+        """Pick a calendar by name, or the only one if name is omitted."""
+        calendars = await self.list_calendars()
+        if not calendars:
+            raise DigiBrainError("No calendars found. Connect a calendar account first.")
+        if calendar_name:
+            for cal in calendars:
+                if cal["name"].casefold() == calendar_name.casefold():
+                    return cal["id"]
+            names = ", ".join(repr(c["name"]) for c in calendars)
+            raise DigiBrainError(
+                f"No calendar named {calendar_name!r}. Available: {names}"
+            )
+        if len(calendars) == 1:
+            return calendars[0]["id"]
+        names = ", ".join(repr(c["name"]) for c in calendars)
+        raise DigiBrainError(
+            f"Multiple calendars exist — specify one of: {names}"
         )
 
     async def done_column_id(self, topic_id: str) -> str:

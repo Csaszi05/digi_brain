@@ -364,6 +364,87 @@ async def time_summary(since: str | None = None, until: str | None = None) -> An
     return {"total_hours": round(total, 2), "by_topic": breakdown}
 
 
+# ── calendar ────────────────────────────────────────────────
+@mcp.tool()
+async def list_calendars() -> Any:
+    """List the user's calendars (id, name). Needed to know where to create events."""
+    return await _safe(_get_client().list_calendars())
+
+
+@mcp.tool()
+async def list_events(
+    since: str | None = None,
+    until: str | None = None,
+    topic_id: str | None = None,
+) -> Any:
+    """List calendar events ordered by start time. since/until are ISO timestamps
+    filtering by start time; optionally filter by topic_id."""
+    return await _safe(
+        _get_client().list_events(since=since, until=until, topic_id=topic_id)
+    )
+
+
+@mcp.tool()
+async def create_event(
+    title: str,
+    starts_at: str,
+    ends_at: str,
+    calendar_name: str | None = None,
+    description: str | None = None,
+    location: str | None = None,
+    all_day: bool = False,
+    topic_id: str | None = None,
+) -> Any:
+    """Create a calendar event (also pushed to the connected CalDAV calendar).
+
+    starts_at/ends_at are ISO 8601 (e.g. 2026-06-20T14:00:00Z). calendar_name
+    selects the calendar (omit if you only have one). Optionally link to a topic.
+    """
+    client = _get_client()
+    try:
+        calendar_id = await client.resolve_calendar(calendar_name)
+    except DigiBrainError as exc:
+        return {"error": str(exc)}
+    return await _safe(
+        client.create_event(
+            calendar_id=calendar_id,
+            title=title,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            description=description,
+            location=location,
+            all_day=all_day,
+            topic_id=topic_id,
+        )
+    )
+
+
+@mcp.tool()
+async def update_event(
+    event_id: str,
+    title: str | None = None,
+    starts_at: str | None = None,
+    ends_at: str | None = None,
+    description: str | None = None,
+    location: str | None = None,
+    all_day: bool | None = None,
+    topic_id: str | None = None,
+) -> Any:
+    """Update a calendar event. Only provided fields change. Times are ISO 8601."""
+    return await _safe(
+        _get_client().update_event(
+            event_id,
+            title=title,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            description=description,
+            location=location,
+            all_day=all_day,
+            topic_id=topic_id,
+        )
+    )
+
+
 def main() -> None:
     mcp.run()
 
