@@ -130,6 +130,15 @@ class DigiBrainClient:
     async def list_time_entries(self, **params: Any) -> list[dict]:
         return await self._request("GET", "/time/entries", params=_clean(params))
 
+    # ── kanban columns ──────────────────────────────────────
+    async def create_column(self, topic_id: str, **body: Any) -> dict:
+        return await self._request(
+            "POST", f"/topics/{topic_id}/columns", json=_clean(body)
+        )
+
+    async def update_column(self, column_id: str, **body: Any) -> dict:
+        return await self._request("PATCH", f"/columns/{column_id}", json=_clean(body))
+
     # ── calendar ────────────────────────────────────────────
     async def list_calendars(self) -> list[dict]:
         return await self._request("GET", "/calendar/calendars")

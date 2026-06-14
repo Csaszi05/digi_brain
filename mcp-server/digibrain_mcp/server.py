@@ -364,6 +364,45 @@ async def time_summary(since: str | None = None, until: str | None = None) -> An
     return {"total_hours": round(total, 2), "by_topic": breakdown}
 
 
+# ── kanban columns ──────────────────────────────────────────
+@mcp.tool()
+async def create_column(
+    topic_id: str,
+    name: str,
+    color: str | None = None,
+    is_done_column: bool = False,
+) -> Any:
+    """Add a kanban column to a topic. It is appended after existing columns.
+    Set is_done_column=true if tasks moved here should count as completed."""
+    return await _safe(
+        _get_client().create_column(
+            topic_id, name=name, color=color, is_done_column=is_done_column
+        )
+    )
+
+
+@mcp.tool()
+async def update_column(
+    topic_id: str,
+    column_name: str,
+    new_name: str | None = None,
+    color: str | None = None,
+    is_done_column: bool | None = None,
+) -> Any:
+    """Rename or restyle an existing kanban column. Identify it by its current
+    column_name within the topic; only provided fields change."""
+    client = _get_client()
+    try:
+        column_id = await client.resolve_column(topic_id, column_name)
+    except DigiBrainError as exc:
+        return {"error": str(exc)}
+    return await _safe(
+        client.update_column(
+            column_id, name=new_name, color=color, is_done_column=is_done_column
+        )
+    )
+
+
 # ── calendar ────────────────────────────────────────────────
 @mcp.tool()
 async def list_calendars() -> Any:

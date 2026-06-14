@@ -62,5 +62,5 @@ npx @modelcontextprotocol/inspector .venv/bin/python -m digibrain_mcp
 `time_summary`, `list_calendars`, `list_events`.
 
 **Write:** `create_topic`, `update_topic`, `create_task`, `update_task`,
-`complete_task`, `create_note`, `update_note`, `start_timer`, `stop_timer`,
-`log_time`, `create_event`, `update_event`.
+`complete_task`, `create_column`, `update_column`, `create_note`, `update_note`,
+`start_timer`, `stop_timer`, `log_time`, `create_event`, `update_event`.
