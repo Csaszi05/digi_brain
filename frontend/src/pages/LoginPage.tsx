@@ -79,22 +79,11 @@ export default function LoginPage() {
       >
         {/* Brand */}
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: "var(--accent)",
-              display: "grid",
-              placeItems: "center",
-              fontSize: 22,
-              fontWeight: 700,
-              color: "#fff",
-              letterSpacing: "-0.04em",
-            }}
-          >
-            DB
-          </div>
+          <img
+            src="/glyph.svg"
+            alt=""
+            style={{ width: 48, height: 48, borderRadius: 12, display: "block" }}
+          />
           <h1
             style={{
               fontSize: 24,

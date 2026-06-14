@@ -189,7 +189,7 @@ export function Sidebar() {
     >
       <div className="sb-header">
         <div className="sb-brand">
-          <div className="sb-brand-glyph">DB</div>
+          <img src="/glyph.svg" alt="" className="sb-brand-glyph" width={28} height={28} />
           <span className="sb-brand-name">DigiBrain</span>
         </div>
         {!collapsed && (

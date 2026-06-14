@@ -375,14 +375,8 @@
   .sb-brand-glyph {
     width: 28px;
     height: 28px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    color: white;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: -0.02em;
+    border-radius: 7px;
+    display: block;
     flex-shrink: 0;
   }
   .sb-brand-name {
