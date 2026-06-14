@@ -113,7 +113,12 @@ async def create_task(
         title=payload.title,
         description=payload.description,
         priority=payload.priority.value,
+        parent_task_id=payload.parent_task_id,
+        icon=payload.icon,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
         due_date=payload.due_date,
+        story_points=payload.story_points,
         position=next_position,
         completed_at=datetime.now(timezone.utc) if column.is_done_column else None,
     )

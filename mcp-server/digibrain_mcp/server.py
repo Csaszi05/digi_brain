@@ -145,12 +145,14 @@ async def create_task(
     description: str | None = None,
     due_date: str | None = None,
     story_points: int | None = None,
+    parent_task_id: str | None = None,
 ) -> Any:
     """Create a task in a topic.
 
     column_name is resolved to the topic's matching kanban column (default
     'To Do'). priority is low | medium | high. due_date is ISO 8601
-    (e.g. 2026-06-20 or 2026-06-20T17:00:00Z).
+    (e.g. 2026-06-20 or 2026-06-20T17:00:00Z). Pass parent_task_id to make
+    this a subtask nested under another task (in the same topic).
     """
     client = _get_client()
     try:
@@ -166,6 +168,7 @@ async def create_task(
             description=description,
             due_date=due_date,
             story_points=story_points,
+            parent_task_id=parent_task_id,
         )
     )
 
@@ -179,10 +182,12 @@ async def update_task(
     due_date: str | None = None,
     story_points: int | None = None,
     column_name: str | None = None,
+    parent_task_id: str | None = None,
 ) -> Any:
     """Update a task. Only provided fields change. Pass column_name to move the
     task to another column (resolved within the task's own topic); moving it to
-    the done column will mark it completed."""
+    the done column will mark it completed. Pass parent_task_id to nest this task
+    under another (make it a subtask)."""
     client = _get_client()
     column_id = None
     if column_name:
@@ -200,6 +205,7 @@ async def update_task(
             due_date=due_date,
             story_points=story_points,
             column_id=column_id,
+            parent_task_id=parent_task_id,
         )
     )
 
