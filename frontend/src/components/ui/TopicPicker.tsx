@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect, useMemo, type ReactNode } from "react"
 import { Search, X, ChevronDown, Tag } from "lucide-react"
 import { useTopicsQuery, type Topic } from "@/api/topics"
 
@@ -23,6 +23,7 @@ type Props = {
   placeholder?: string
   clearable?: boolean
   size?: "sm" | "md"
+  trigger?: (props: { open: boolean; toggle: () => void }) => ReactNode
 }
 
 export function TopicPicker({
@@ -31,6 +32,7 @@ export function TopicPicker({
   placeholder = "— Nincs topic —",
   clearable = true,
   size = "md",
+  trigger,
 }: Props) {
   const [open, setOpen]     = useState(false)
   const [query, setQuery]   = useState("")
@@ -75,13 +77,22 @@ export function TopicPicker({
 
   const height = size === "sm" ? 26 : 32
   const fontSize = size === "sm" ? 12 : 13
+  const toggle = () => setOpen(v => !v)
 
   return (
-    <div ref={containerRef} style={{ position: "relative", display: "inline-block", minWidth: 160 }}>
+    <div
+      ref={containerRef}
+      style={{
+        position: "relative",
+        display: "inline-block",
+        minWidth: trigger ? undefined : 160,
+      }}
+    >
       {/* Trigger */}
+      {trigger ? trigger({ open, toggle }) : (
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={toggle}
         style={{
           display: "flex", alignItems: "center", gap: 7,
           height, padding: "0 8px 0 10px",
@@ -117,6 +128,7 @@ export function TopicPicker({
           <ChevronDown size={12} strokeWidth={1.5} style={{ color: "var(--fg3)", marginLeft: "auto", flexShrink: 0 }} />
         )}
       </button>
+      )}
 
       {/* Dropdown */}
       {open && (
@@ -152,7 +164,7 @@ export function TopicPicker({
           {/* Options */}
           <div style={{ maxHeight: 260, overflowY: "auto" }}>
             {/* No topic option */}
-            {!query && (
+            {!query && clearable && (
               <button
                 type="button"
                 onClick={() => { onChange(null); setOpen(false) }}

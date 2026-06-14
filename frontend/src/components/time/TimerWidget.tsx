@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { ChevronDown, Play, Square } from "lucide-react"
 import {
   useActiveTimerQuery,
@@ -7,6 +6,7 @@ import {
   useStopTimerMutation,
 } from "@/api/time"
 import { useTopicsQuery } from "@/api/topics"
+import { TopicPicker } from "@/components/ui/TopicPicker"
 
 function formatElapsed(totalSeconds: number) {
   const t = Math.max(0, Math.floor(totalSeconds))
@@ -61,38 +61,26 @@ export function TimerWidget() {
     )
   }
 
-  // Idle — show "Start tracking" with a topic picker
-  const topics = topicsQuery.data ?? []
-
+  // Idle — show "Start tracking" with a searchable topic picker
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button type="button" className="timer-widget" disabled={start.isPending}>
+    <TopicPicker
+      value={null}
+      clearable={false}
+      onChange={(id) => {
+        if (id) start.mutate({ topic_id: id })
+      }}
+      trigger={({ toggle }) => (
+        <button
+          type="button"
+          className="timer-widget"
+          onClick={toggle}
+          disabled={start.isPending}
+        >
           <Play size={12} strokeWidth={1.5} />
           {start.isPending ? "Starting…" : "Start tracking"}
           <ChevronDown size={12} strokeWidth={1.5} />
         </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content className="dm-content" sideOffset={4} align="end" style={{ maxHeight: 320, overflowY: "auto" }}>
-          <div className="dm-label">Pick a topic</div>
-          {topics.length === 0 && (
-            <div className="dm-item" style={{ color: "var(--fg3)" }}>
-              No topics yet
-            </div>
-          )}
-          {topics.map((t) => (
-            <DropdownMenu.Item
-              key={t.id}
-              className="dm-item"
-              onSelect={() => start.mutate({ topic_id: t.id })}
-            >
-              <span style={{ width: 16, textAlign: "center" }}>{t.icon ?? "📁"}</span>
-              <span className="truncate">{t.name}</span>
-            </DropdownMenu.Item>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+      )}
+    />
   )
 }
