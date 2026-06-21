@@ -59,8 +59,13 @@ npx @modelcontextprotocol/inspector .venv/bin/python -m digibrain_mcp
 
 **Read:** `list_topics`, `get_topic`, `list_tasks`, `list_topic_tasks`, `get_task`,
 `list_notes`, `get_note`, `search_notes`, `get_active_timer`, `list_time_entries`,
-`time_summary`, `list_calendars`, `list_events`.
+`time_summary`, `list_calendars`, `list_events`, `list_shopping_lists`,
+`list_shopping_items`.
 
 **Write:** `create_topic`, `update_topic`, `create_task`, `update_task`,
 `complete_task`, `create_column`, `update_column`, `create_note`, `update_note`,
 `start_timer`, `stop_timer`, `log_time`, `create_event`, `update_event`.
+
+**Shopping (incl. delete):** `create_shopping_list`, `update_shopping_list`,
+`delete_shopping_list`, `add_shopping_item`, `update_shopping_item`,
+`delete_shopping_item`, `clear_checked_items`, `uncheck_all_items`.

@@ -409,6 +409,124 @@ async def update_column(
     )
 
 
+# ── shopping lists ──────────────────────────────────────────
+@mcp.tool()
+async def list_shopping_lists() -> Any:
+    """List the user's shopping lists (id, name, icon, item_count, checked_count)."""
+    return await _safe(_get_client().list_shopping_lists())
+
+
+@mcp.tool()
+async def create_shopping_list(name: str, icon: str | None = None) -> Any:
+    """Create a new shopping list (e.g. 'Groceries', 'Hardware store')."""
+    return await _safe(_get_client().create_shopping_list(name=name, icon=icon))
+
+
+@mcp.tool()
+async def update_shopping_list(
+    list_id: str, name: str | None = None, icon: str | None = None
+) -> Any:
+    """Rename or re-icon a shopping list. Only provided fields change."""
+    return await _safe(_get_client().update_shopping_list(list_id, name=name, icon=icon))
+
+
+@mcp.tool()
+async def delete_shopping_list(list_id: str) -> Any:
+    """Delete a shopping list and all its items. This cannot be undone."""
+    await _safe(_get_client().delete_shopping_list(list_id))
+    return {"deleted": list_id}
+
+
+@mcp.tool()
+async def list_shopping_items(list_name: str | None = None, list_id: str | None = None) -> Any:
+    """List items in a shopping list. Identify it by list_name (or list_id, or
+    omit both if you only have one list). Each item has name, quantity, category,
+    checked."""
+    client = _get_client()
+    if not list_id:
+        try:
+            list_id = await client.resolve_shopping_list(list_name)
+        except DigiBrainError as exc:
+            return {"error": str(exc)}
+    return await _safe(client.list_shopping_items(list_id))
+
+
+@mcp.tool()
+async def add_shopping_item(
+    name: str,
+    list_name: str | None = None,
+    list_id: str | None = None,
+    quantity: str | None = None,
+    note: str | None = None,
+    category: str | None = None,
+) -> Any:
+    """Add an item to a shopping list. Identify the list by list_name (or list_id,
+    or omit if only one list). quantity is free text (e.g. '2 kg', '3'). If
+    category is omitted the server auto-categorizes by the item name."""
+    client = _get_client()
+    if not list_id:
+        try:
+            list_id = await client.resolve_shopping_list(list_name)
+        except DigiBrainError as exc:
+            return {"error": str(exc)}
+    return await _safe(
+        client.add_shopping_item(
+            list_id, name=name, quantity=quantity, note=note, category=category
+        )
+    )
+
+
+@mcp.tool()
+async def update_shopping_item(
+    item_id: str,
+    name: str | None = None,
+    quantity: str | None = None,
+    note: str | None = None,
+    category: str | None = None,
+    checked: bool | None = None,
+) -> Any:
+    """Update a shopping item. Set checked=true to tick it off (bought),
+    checked=false to untick. Only provided fields change."""
+    return await _safe(
+        _get_client().update_shopping_item(
+            item_id, name=name, quantity=quantity, note=note, category=category, checked=checked
+        )
+    )
+
+
+@mcp.tool()
+async def delete_shopping_item(item_id: str) -> Any:
+    """Remove a single item from a shopping list."""
+    await _safe(_get_client().delete_shopping_item(item_id))
+    return {"deleted": item_id}
+
+
+@mcp.tool()
+async def clear_checked_items(list_name: str | None = None, list_id: str | None = None) -> Any:
+    """Remove all checked (already-bought) items from a list. Identify by
+    list_name, list_id, or omit if only one list."""
+    client = _get_client()
+    if not list_id:
+        try:
+            list_id = await client.resolve_shopping_list(list_name)
+        except DigiBrainError as exc:
+            return {"error": str(exc)}
+    return await _safe(client.clear_checked_items(list_id))
+
+
+@mcp.tool()
+async def uncheck_all_items(list_name: str | None = None, list_id: str | None = None) -> Any:
+    """Uncheck every item in a list (e.g. to reuse it next week). Identify by
+    list_name, list_id, or omit if only one list."""
+    client = _get_client()
+    if not list_id:
+        try:
+            list_id = await client.resolve_shopping_list(list_name)
+        except DigiBrainError as exc:
+            return {"error": str(exc)}
+    return await _safe(client.uncheck_all_items(list_id))
+
+
 # ── calendar ────────────────────────────────────────────────
 @mcp.tool()
 async def list_calendars() -> Any:

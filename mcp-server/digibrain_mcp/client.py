@@ -152,6 +152,39 @@ class DigiBrainClient:
     async def update_event(self, event_id: str, **body: Any) -> dict:
         return await self._request("PATCH", f"/calendar/events/{event_id}", json=_clean(body))
 
+    # ── shopping lists ──────────────────────────────────────
+    async def list_shopping_lists(self) -> list[dict]:
+        return await self._request("GET", "/shopping/lists")
+
+    async def create_shopping_list(self, **body: Any) -> dict:
+        return await self._request("POST", "/shopping/lists", json=_clean(body))
+
+    async def update_shopping_list(self, list_id: str, **body: Any) -> dict:
+        return await self._request("PATCH", f"/shopping/lists/{list_id}", json=_clean(body))
+
+    async def delete_shopping_list(self, list_id: str) -> None:
+        return await self._request("DELETE", f"/shopping/lists/{list_id}")
+
+    async def list_shopping_items(self, list_id: str) -> list[dict]:
+        return await self._request("GET", f"/shopping/lists/{list_id}/items")
+
+    async def add_shopping_item(self, list_id: str, **body: Any) -> dict:
+        return await self._request(
+            "POST", f"/shopping/lists/{list_id}/items", json=_clean(body)
+        )
+
+    async def update_shopping_item(self, item_id: str, **body: Any) -> dict:
+        return await self._request("PATCH", f"/shopping/items/{item_id}", json=_clean(body))
+
+    async def delete_shopping_item(self, item_id: str) -> None:
+        return await self._request("DELETE", f"/shopping/items/{item_id}")
+
+    async def clear_checked_items(self, list_id: str) -> dict:
+        return await self._request("POST", f"/shopping/lists/{list_id}/clear-checked")
+
+    async def uncheck_all_items(self, list_id: str) -> dict:
+        return await self._request("POST", f"/shopping/lists/{list_id}/uncheck-all")
+
     # ── convenience resolvers ───────────────────────────────
     async def resolve_column(self, topic_id: str, column_name: str) -> str:
         """Map a human column name (e.g. 'To Do') to its column_id within a topic."""
@@ -164,6 +197,22 @@ class DigiBrainClient:
         raise DigiBrainError(
             f"No column named {column_name!r} in this topic. Available: {names}"
         )
+
+    async def resolve_shopping_list(self, list_name: str | None) -> str:
+        """Pick a shopping list by name, or the only one if name is omitted."""
+        lists = await self.list_shopping_lists()
+        if not lists:
+            raise DigiBrainError("No shopping lists yet. Create one first.")
+        if list_name:
+            for lst in lists:
+                if lst["name"].casefold() == list_name.casefold():
+                    return lst["id"]
+            names = ", ".join(repr(l["name"]) for l in lists)
+            raise DigiBrainError(f"No shopping list named {list_name!r}. Available: {names}")
+        if len(lists) == 1:
+            return lists[0]["id"]
+        names = ", ".join(repr(l["name"]) for l in lists)
+        raise DigiBrainError(f"Multiple shopping lists — specify one of: {names}")
 
     async def resolve_calendar(self, calendar_name: str | None) -> str:
         """Pick a calendar by name, or the only one if name is omitted."""
