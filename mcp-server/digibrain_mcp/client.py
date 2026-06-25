@@ -22,7 +22,9 @@ class DigiBrainError(Exception):
 class DigiBrainClient:
     def __init__(self, config: Config) -> None:
         self._config = config
-        self._client = httpx.AsyncClient(base_url=config.api_url, timeout=30.0)
+        # 60s: calendar create/update/delete push to an external CalDAV server,
+        # which can be slow; a short timeout would error even though the op succeeds.
+        self._client = httpx.AsyncClient(base_url=config.api_url, timeout=60.0)
         self._token: str | None = None
 
     async def aclose(self) -> None:
@@ -151,6 +153,9 @@ class DigiBrainClient:
 
     async def update_event(self, event_id: str, **body: Any) -> dict:
         return await self._request("PATCH", f"/calendar/events/{event_id}", json=_clean(body))
+
+    async def delete_event(self, event_id: str) -> None:
+        return await self._request("DELETE", f"/calendar/events/{event_id}")
 
     # ── shopping lists ──────────────────────────────────────
     async def list_shopping_lists(self) -> list[dict]:

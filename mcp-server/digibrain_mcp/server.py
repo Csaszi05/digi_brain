@@ -608,6 +608,14 @@ async def update_event(
     )
 
 
+@mcp.tool()
+async def delete_event(event_id: str) -> Any:
+    """Delete a calendar event (also removed from the connected CalDAV calendar).
+    This cannot be undone."""
+    await _safe(_get_client().delete_event(event_id))
+    return {"deleted": event_id}
+
+
 def main() -> None:
     mcp.run()
 
