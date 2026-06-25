@@ -74,7 +74,16 @@ async def push_event(account: "CalendarAccount", event: "CalendarEvent", calenda
 
 
 async def delete_event_remote(account: "CalendarAccount", event: "CalendarEvent", calendar_external_id: str) -> bool:
-    """Delete an event from the CalDAV server by UID."""
+    """Delete a SINGLE event from the CalDAV server, matched by exact UID.
+
+    Safety: some CalDAV servers (notably Google's legacy endpoint) ignore the
+    `uid` filter and return ALL events for a search. We must therefore verify
+    each result's UID in code and only delete exact matches — otherwise deleting
+    one event would wipe the entire remote calendar.
+    """
+    if not event.external_uid:
+        log.error("delete_event_remote: empty external_uid — refusing to delete")
+        return False
     try:
         password = decrypt(account.password_encrypted)
         client = caldav.DAVClient(url=account.caldav_url, username=account.username, password=password)
@@ -84,9 +93,16 @@ async def delete_event_remote(account: "CalendarAccount", event: "CalendarEvent"
         if target is None:
             return False
         results = target.search(uid=event.external_uid)
+        deleted = 0
         for r in results:
-            r.delete()
-        return True
+            try:
+                remote_uid = str(r.vobject_instance.vevent.uid.value)
+            except Exception:
+                continue
+            if remote_uid == event.external_uid:
+                r.delete()
+                deleted += 1
+        return deleted > 0
     except Exception as exc:
         log.error("delete_event_remote failed: %s", exc)
         return False
