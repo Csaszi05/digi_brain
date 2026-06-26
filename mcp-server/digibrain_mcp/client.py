@@ -25,7 +25,9 @@ class DigiBrainClient:
         # 60s: calendar create/update/delete push to an external CalDAV server,
         # which can be slow; a short timeout would error even though the op succeeds.
         self._client = httpx.AsyncClient(base_url=config.api_url, timeout=60.0)
-        self._token: str | None = None
+        # Prefer a personal access token (bypasses 2FA); fall back to login.
+        self._uses_api_token = bool(config.api_token)
+        self._token: str | None = config.api_token or None
 
     async def aclose(self) -> None:
         await self._client.aclose()
@@ -46,15 +48,16 @@ class DigiBrainClient:
         return {"Authorization": f"Bearer {self._token}"} if self._token else {}
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
-        """Send a request, logging in lazily and retrying once on 401."""
-        if self._token is None:
+        """Send a request. With an API token, use it directly; otherwise log in
+        lazily and retry once on 401 (covers JWT expiry)."""
+        if self._token is None and not self._uses_api_token:
             await self._login()
 
         resp = await self._client.request(
             method, path, headers=self._auth_headers(), **kwargs
         )
-        if resp.status_code == 401:
-            # Token expired/invalid — re-login once and retry.
+        if resp.status_code == 401 and not self._uses_api_token:
+            # JWT expired/invalid — re-login once and retry.
             await self._login()
             resp = await self._client.request(
                 method, path, headers=self._auth_headers(), **kwargs

@@ -9,12 +9,18 @@ from app.core.security import (
     create_access_token,
     create_pending_2fa_token,
     decode_pending_2fa_token,
+    generate_api_token,
+    hash_api_token,
     hash_password,
     verify_password,
 )
 from app.core import totp
+from app.models.api_token import ApiToken
 from app.models.user import User
 from app.schemas.auth import (
+    ApiTokenCreateRequest,
+    ApiTokenCreateResponse,
+    ApiTokenResponse,
     LoginRequest,
     LoginResponse,
     RegisterRequest,
@@ -267,4 +273,46 @@ async def twofa_disable(
     user.totp_enabled = False
     user.totp_secret = None
     user.totp_backup_codes = None
+    await db.commit()
+
+
+# ─── API tokens (programmatic access, e.g. MCP) ───────────
+
+@router.get("/tokens", response_model=list[ApiTokenResponse])
+async def list_api_tokens(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = await db.execute(
+        select(ApiToken).where(ApiToken.user_id == user_id).order_by(ApiToken.created_at.desc())
+    )
+    return rows.scalars().all()
+
+
+@router.post("/tokens", response_model=ApiTokenCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_api_token(
+    payload: ApiTokenCreateRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a personal access token. The raw token is returned ONCE here —
+    store it now; only its hash is kept."""
+    raw = generate_api_token()
+    token = ApiToken(user_id=user_id, name=payload.name, token_hash=hash_api_token(raw))
+    db.add(token)
+    await db.commit()
+    await db.refresh(token)
+    return ApiTokenCreateResponse(id=token.id, name=token.name, token=raw)
+
+
+@router.delete("/tokens/{token_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_api_token(
+    token_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    token = await db.get(ApiToken, token_id)
+    if token is None or token.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Token not found")
+    await db.delete(token)
     await db.commit()

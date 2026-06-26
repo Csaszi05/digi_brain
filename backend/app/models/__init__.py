@@ -9,6 +9,7 @@ from app.models.finance import Category, Transaction, Budget, TransactionKind, B
 from app.models.inbox import EmailAccount, Ticket, TicketMessage, InboxRule, TicketActivity
 from app.models.calendar import CalendarAccount, Calendar, CalendarEvent
 from app.models.shopping import ShoppingList, ShoppingItem
+from app.models.api_token import ApiToken
 
 __all__ = [
     "User",

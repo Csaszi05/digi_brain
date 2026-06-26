@@ -30,6 +30,7 @@ class Config:
     api_url: str
     email: str
     password: str
+    api_token: str  # personal access token (preferred; bypasses 2FA)
 
 
 def load_config() -> Config:
@@ -37,17 +38,13 @@ def load_config() -> Config:
     api_url = os.environ.get("DIGIBRAIN_API_URL", DEFAULT_API_URL).rstrip("/")
     email = os.environ.get("DIGIBRAIN_EMAIL", "")
     password = os.environ.get("DIGIBRAIN_PASSWORD", "")
+    api_token = os.environ.get("DIGIBRAIN_API_TOKEN", "")
 
-    missing = [
-        name
-        for name, val in (("DIGIBRAIN_EMAIL", email), ("DIGIBRAIN_PASSWORD", password))
-        if not val
-    ]
-    if missing:
+    # Either an API token (preferred) OR email+password is required.
+    if not api_token and not (email and password):
         raise SystemExit(
-            "Missing required environment variable(s): "
-            + ", ".join(missing)
-            + ". Set them in the Claude Desktop config or a .env file."
+            "Set DIGIBRAIN_API_TOKEN (recommended), or DIGIBRAIN_EMAIL + "
+            "DIGIBRAIN_PASSWORD, in the Claude config or a .env file."
         )
 
-    return Config(api_url=api_url, email=email, password=password)
+    return Config(api_url=api_url, email=email, password=password, api_token=api_token)

@@ -4,6 +4,7 @@ import { X } from "lucide-react"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/stores/authStore"
 import { TwoFactorSection } from "./TwoFactorSection"
+import { ApiTokensSection } from "./ApiTokensSection"
 
 type Props = {
   onClose: () => void
@@ -195,6 +196,7 @@ export function ProfilePanel({ onClose }: Props) {
 
         <div className="tp-body" style={{ paddingTop: 0 }}>
           <TwoFactorSection />
+          <ApiTokensSection />
         </div>
       </aside>
     </>,

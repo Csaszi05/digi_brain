@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
 
 _EMAIL_RE = re.compile(
@@ -81,6 +82,26 @@ class TwoFADisableRequest(BaseModel):
 
 class TwoFAStatusResponse(BaseModel):
     enabled: bool
+
+
+class ApiTokenCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+
+
+class ApiTokenCreateResponse(BaseModel):
+    """Returned once at creation — `token` is the only time the raw value is shown."""
+    id: str
+    name: str
+    token: str
+
+
+class ApiTokenResponse(BaseModel):
+    id: str
+    name: str
+    created_at: datetime
+    last_used_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
 
 
 class UpdateProfileRequest(BaseModel):

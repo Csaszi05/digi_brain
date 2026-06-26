@@ -16,6 +16,22 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
+API_TOKEN_PREFIX = "dbk_"
+
+
+def generate_api_token() -> str:
+    """A new personal access token (shown once)."""
+    import secrets
+    return API_TOKEN_PREFIX + secrets.token_urlsafe(32)
+
+
+def hash_api_token(token: str) -> str:
+    """SHA-256 hex of an API token. Safe for high-entropy random tokens and
+    fast to look up (unlike bcrypt, which can't be queried by value)."""
+    import hashlib
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
