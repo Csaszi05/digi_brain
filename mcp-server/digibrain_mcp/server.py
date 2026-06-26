@@ -11,6 +11,7 @@ import os
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import Icon
 
 from .client import DigiBrainClient, DigiBrainError
 from .config import load_config
@@ -19,6 +20,10 @@ from .config import load_config
 _HOST = os.environ.get("MCP_HOST", "127.0.0.1")
 _PORT = int(os.environ.get("MCP_PORT", "8000"))
 _TRANSPORT = os.environ.get("MCP_TRANSPORT", "stdio")
+
+# Icon Claude shows for the connector / tool calls. Change the URL to rebrand.
+_ICONS = [Icon(src="https://digibrain.webcsaszar.com/icon-192.png", mimeType="image/png", sizes=["192x192"])]
+_WEBSITE = "https://digibrain.webcsaszar.com"
 
 if _TRANSPORT == "http":
     # Internet-facing server: protect it with our self-hosted OAuth 2.1 provider.
@@ -33,6 +38,8 @@ if _TRANSPORT == "http":
         "digibrain",
         host=_HOST,
         port=_PORT,
+        icons=_ICONS,
+        website_url=_WEBSITE,
         auth_server_provider=DigiBrainOAuthProvider(),
         auth=AuthSettings(
             issuer_url=PUBLIC_URL,
@@ -43,7 +50,7 @@ if _TRANSPORT == "http":
         ),
     )
 else:
-    mcp = FastMCP("digibrain", host=_HOST, port=_PORT)
+    mcp = FastMCP("digibrain", host=_HOST, port=_PORT, icons=_ICONS, website_url=_WEBSITE)
 
 _client: DigiBrainClient | None = None
 
