@@ -48,5 +48,27 @@ services:
     depends_on:
       - backend
 
+  mcp:
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      MCP_TRANSPORT: http
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8002"
+      MCP_PUBLIC_URL: https://mcp.digibrain.webcsaszar.com
+      MCP_OAUTH_DB: /data/oauth.db
+      # Internal docker-network call to the backend (no internet hop).
+      DIGIBRAIN_API_URL: http://backend:8000/api/v1
+      DIGIBRAIN_API_TOKEN: ${MCP_API_TOKEN}
+    ports:
+      - "8002:8002"
+    depends_on:
+      - backend
+    volumes:
+      - mcp_oauth:/data
+
 volumes:
   pgdata:
+  mcp_oauth:
