@@ -7,6 +7,7 @@ create/update only; no destructive deletes in this version.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -14,7 +15,35 @@ from mcp.server.fastmcp import FastMCP
 from .client import DigiBrainClient, DigiBrainError
 from .config import load_config
 
-mcp = FastMCP("digibrain")
+# Host/port only matter in HTTP mode; harmless for stdio.
+_HOST = os.environ.get("MCP_HOST", "127.0.0.1")
+_PORT = int(os.environ.get("MCP_PORT", "8000"))
+_TRANSPORT = os.environ.get("MCP_TRANSPORT", "stdio")
+
+if _TRANSPORT == "http":
+    # Internet-facing server: protect it with our self-hosted OAuth 2.1 provider.
+    from mcp.server.auth.settings import (
+        AuthSettings,
+        ClientRegistrationOptions,
+        RevocationOptions,
+    )
+    from .oauth.provider import PUBLIC_URL, DigiBrainOAuthProvider
+
+    mcp = FastMCP(
+        "digibrain",
+        host=_HOST,
+        port=_PORT,
+        auth_server_provider=DigiBrainOAuthProvider(),
+        auth=AuthSettings(
+            issuer_url=PUBLIC_URL,
+            resource_server_url=PUBLIC_URL,
+            client_registration_options=ClientRegistrationOptions(enabled=True),
+            revocation_options=RevocationOptions(enabled=True),
+            required_scopes=[],
+        ),
+    )
+else:
+    mcp = FastMCP("digibrain", host=_HOST, port=_PORT)
 
 _client: DigiBrainClient | None = None
 
@@ -617,7 +646,14 @@ async def delete_event(event_id: str) -> Any:
 
 
 def main() -> None:
-    mcp.run()
+    # MCP_TRANSPORT=http → remote Streamable HTTP (for the internet-facing server);
+    # anything else → stdio (local Claude Desktop / Claude Code). stdio is the default.
+    if _TRANSPORT == "http":
+        from .oauth.consent import register_oauth_routes
+        register_oauth_routes(mcp)
+        mcp.run("streamable-http")
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":
