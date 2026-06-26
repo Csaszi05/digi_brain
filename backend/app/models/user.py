@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any
-from sqlalchemy import String, DateTime, func
+from sqlalchemy import String, Boolean, Text, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
@@ -16,6 +16,10 @@ class User(Base):
     master_key_salt: Mapped[str | None] = mapped_column(String(255), nullable=True)
     default_currency: Mapped[str] = mapped_column(String(3), nullable=False, default="HUF")
     dashboard_config: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Two-factor auth (TOTP). Secret is Fernet-encrypted at rest; backup codes are hashed.
+    totp_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    totp_backup_codes: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     topics: Mapped[list["Topic"]] = relationship("Topic", back_populates="user", cascade="all, delete-orphan")

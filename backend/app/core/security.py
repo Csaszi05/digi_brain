@@ -25,6 +25,28 @@ def create_access_token(data: dict) -> str:
     return jwt.encode({**data, "exp": expire}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
+def create_pending_2fa_token(user_id: str) -> str:
+    """Short-lived (5 min) token issued after password check, exchanged for a
+    real access token once the TOTP code is verified."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=5)
+    return jwt.encode(
+        {"sub": user_id, "purpose": "2fa", "exp": expire},
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
+def decode_pending_2fa_token(token: str) -> str | None:
+    """Return the user_id if the token is a valid, unexpired 2FA-pending token."""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    except JWTError:
+        return None
+    if payload.get("purpose") != "2fa":
+        return None
+    return payload.get("sub")
+
+
 def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
 

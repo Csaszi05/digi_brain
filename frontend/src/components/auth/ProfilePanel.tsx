@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 import { api } from "@/lib/api"
 import { useAuthStore } from "@/stores/authStore"
+import { TwoFactorSection } from "./TwoFactorSection"
 
 type Props = {
   onClose: () => void
@@ -191,6 +192,10 @@ export function ProfilePanel({ onClose }: Props) {
             </button>
           </div>
         </form>
+
+        <div className="tp-body" style={{ paddingTop: 0 }}>
+          <TwoFactorSection />
+        </div>
       </aside>
     </>,
     document.body

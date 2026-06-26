@@ -46,6 +46,43 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
+class LoginResponse(BaseModel):
+    """Login result: either a full token, or a 2FA challenge (requires_2fa)."""
+    requires_2fa: bool = False
+    pending_token: str | None = None
+    access_token: str | None = None
+    token_type: str = "bearer"
+    user: UserResponse | None = None
+
+
+class TwoFALoginRequest(BaseModel):
+    pending_token: str
+    code: str
+
+
+class TwoFASetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    qr_data_url: str
+
+
+class TwoFAEnableRequest(BaseModel):
+    code: str
+
+
+class TwoFAEnableResponse(BaseModel):
+    backup_codes: list[str]
+
+
+class TwoFADisableRequest(BaseModel):
+    current_password: str
+    code: str
+
+
+class TwoFAStatusResponse(BaseModel):
+    enabled: bool
+
+
 class UpdateProfileRequest(BaseModel):
     current_password: str
     new_email: str | None = None

@@ -11,6 +11,14 @@ type AuthResponse = {
   user: AuthUser
 }
 
+type LoginResponse = {
+  requires_2fa?: boolean
+  pending_token?: string
+  access_token?: string
+  token_type?: string
+  user?: AuthUser
+}
+
 export default function LoginPage() {
   const [tab, setTab] = useState<Tab>("login")
   const [email, setEmail] = useState("")
@@ -18,6 +26,8 @@ export default function LoginPage() {
   const [confirm, setConfirm] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [pendingToken, setPendingToken] = useState<string | null>(null)
+  const [code, setCode] = useState("")
   const { login } = useAuthStore()
   const navigate = useNavigate()
   const emailRef = useRef<HTMLInputElement>(null)
@@ -46,10 +56,22 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      const endpoint = tab === "login" ? "/auth/login" : "/auth/register"
-      const { data } = await api.post<AuthResponse>(endpoint, { email, password })
-      login(data.access_token, data.user)
-      navigate("/", { replace: true })
+      if (tab === "register") {
+        const { data } = await api.post<AuthResponse>("/auth/register", { email, password })
+        login(data.access_token, data.user)
+        navigate("/", { replace: true })
+        return
+      }
+      const { data } = await api.post<LoginResponse>("/auth/login", { email, password })
+      if (data.requires_2fa && data.pending_token) {
+        // Password OK, but 2FA is on → switch to the code step.
+        setPendingToken(data.pending_token)
+        return
+      }
+      if (data.access_token && data.user) {
+        login(data.access_token, data.user)
+        navigate("/", { replace: true })
+      }
     } catch (err: unknown) {
       const detail =
         err && typeof err === "object" && "response" in err
@@ -62,6 +84,29 @@ export default function LoginPage() {
             ? "Invalid email or password"
             : "Registration failed. Please try again.")
       )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerify2fa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const { data } = await api.post<AuthResponse>("/auth/login/2fa", {
+        pending_token: pendingToken,
+        code,
+      })
+      login(data.access_token, data.user)
+      navigate("/", { replace: true })
+    } catch (err: unknown) {
+      const detail =
+        err && typeof err === "object" && "response" in err
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? (err as any).response?.data?.detail
+          : null
+      setError(detail ?? "Invalid 2FA code")
     } finally {
       setLoading(false)
     }
@@ -105,6 +150,56 @@ export default function LoginPage() {
           className="card"
           style={{ padding: "28px 28px 24px" }}
         >
+          {pendingToken ? (
+            <form onSubmit={handleVerify2fa} className="flex flex-col gap-4">
+              <div>
+                <div className="tp-field-label">Two-factor code</div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="tp-field-input"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="6-digit code or backup code"
+                  autoFocus
+                  required
+                />
+                <p style={{ fontSize: 12, color: "var(--fg3)", marginTop: 6 }}>
+                  Enter the code from your authenticator app, or a backup code.
+                </p>
+              </div>
+              {error && (
+                <div
+                  className="rounded-md px-3 py-2 text-sm"
+                  style={{
+                    background: "var(--danger-soft)",
+                    color: "var(--danger)",
+                    border: "1px solid var(--danger)",
+                    fontSize: 13,
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+                style={{ height: 40, fontSize: 14, fontWeight: 600, marginTop: 4 }}
+              >
+                {loading ? "Verifying…" : "Verify"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => { setPendingToken(null); setCode(""); setError(null) }}
+              >
+                Back
+              </button>
+            </form>
+          ) : (
+          <>
           {/* Tabs */}
           <div className="tabs mb-6">
             <button
@@ -198,6 +293,8 @@ export default function LoginPage() {
                   : "Create account"}
             </button>
           </form>
+          </>
+          )}
         </div>
 
         <p
